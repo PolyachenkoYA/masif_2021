@@ -1,0 +1,6 @@
+CRYST1   74.947   83.518   75.000  90.00  90.00  90.00 P 1           1 
+MODEL        0
+ATOM      1  N   ARG A   0      32.373  28.769  31.652  1.00  0.00           N  
+TER       2      ARG A   0
+ENDMDL
+END
