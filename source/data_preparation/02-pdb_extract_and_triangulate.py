@@ -8,25 +8,40 @@ import os
 import numpy as np
 import glob
 import subprocess
+import shutil
+import pathlib
 from default_config.masif_opts import masif_opts
 import data_preparation.extract_and_triangulate_lib as ext_and_trg
 from input_output.extractPDB import extractPDB
 from input_output.save_ply import save_ply
-import my_utils as my
+
+import my_utils as my_u
+import mylib as my
 
 args = sys.argv[1:]
 argc = len(args)
 if(not argc in [1, 2]):
-    print('Usage:\n' + sys.argv[0] + '   pdbid1   [to_recompute ((1)/0)]')
-    sys.exit(1)
+	print('Usage:\n' + sys.argv[0] + '   pdbid1   [to_recompute ((1)/0)]')
+	sys.exit(1)
 
 pdb_filebase = args[0]
-pdb_filename = pdb_filebase + '.pdb'
-
 to_recompute = ((args[1] == '1') if (argc > 1) else True)
-u_chain_filepath_base = os.path.join(os.getcwd(), pdb_filebase)
-u_chain_filepath = u_chain_filepath_base + '.pdb'
-ply_filepath = os.path.join(masif_opts['ply_chain_dir'], u_chain_filepath_base + '.ply')
+print(to_recompute)
+
+pdb_filename = pdb_filebase + '.pdb'
+u_chain_filepath_base = os.path.join(my.git_root_path(), 'data', 'linear_avg', pdb_filebase)
+if(os.path.isdir(u_chain_filepath_base)):
+	if(to_recompute):
+		shutil.rmtree(u_chain_filepath_base)
+	else:
+		print('PDB was already processed. Set to_recompure=1 and rerun to owerwrite')
+		sys.exit(1)
+os.makedirs(u_chain_filepath_base)
+u_chain_filepath = os.path.join(u_chain_filepath_base, pdb_filebase + '.pdb')
+shutil.move(u_chain_filepath_base + '.pdb', u_chain_filepath)
+u_chain_filepath_base = os.path.join(u_chain_filepath_base, pdb_filebase)
+#ply_filepath = os.path.join(masif_opts['ply_chain_dir'], u_chain_filepath_base + '.ply')
+ply_filepath = u_chain_filepath_base + '.ply'
 
 # construct unbound the mesh.
 u_regular_mesh, u_vertex_normals, u_vertices, u_names = \
