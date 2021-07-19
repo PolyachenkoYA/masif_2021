@@ -3,7 +3,7 @@ from subprocess import Popen, PIPE
 
 from input_output.read_msms import read_msms
 from triangulation.xyzrn import output_pdb_as_xyzrn
-from default_config.global_vars import msms_bin 
+from default_config.global_vars import msms_bin
 from default_config.masif_opts import masif_opts
 import random
 import sys
@@ -11,13 +11,14 @@ import sys
 # Pablo Gainza LPDI EPFL 2017-2019
 # Calls MSMS and returns the vertices.
 # Special atoms are atoms with a reduced radius.
-def computeMSMS(pdb_file,  protonate=True, to_recompute=False):
+def computeMSMS(pdb_file,  have_xyzrn=True, to_recompute=False):
     randnum = random.randint(1,10000000)
     file_base = masif_opts['tmp_dir']+"/msms_"+os.path.basename(pdb_file)
     out_xyzrn = file_base+".xyzrn"
+    #print('msms file' + file_base)
 
     if((not os.path.isfile(file_base + '.vert')) or (not os.path.isfile(file_base + '.face')) or (not os.path.isfile(file_base + '.area'))):
-        if protonate:        
+        if have_xyzrn:
             output_pdb_as_xyzrn(pdb_file, out_xyzrn)
         else:
             print("Error - pdb2xyzrn is deprecated.")
