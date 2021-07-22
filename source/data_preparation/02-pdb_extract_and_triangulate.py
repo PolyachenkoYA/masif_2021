@@ -4,12 +4,14 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-#import glob
-#import subprocess
 import shutil
-#import pathlib
 import pymesh
 import trimesh
+import scipy
+import scipy.stats
+import bisect
+import shapely.geometry
+
 #from default_config.masif_opts import masif_opts
 import data_preparation.extract_and_triangulate_lib as ext_and_trg
 #from input_output.extractPDB import extractPDB
@@ -17,9 +19,6 @@ import data_preparation.extract_and_triangulate_lib as ext_and_trg
 import triangulation
 import triangulation.meshcut as meshcut
 from  triangulation.make_surface import make_mesh
-import scipy
-import scipy.stats
-import bisect
 
 import mdtraj as md
 
@@ -157,6 +156,7 @@ def main():
 	cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
 	sections_3D = []
 	sections_2D = []
+	main_subsections_ids = - np.ones(N_centers, dtype=int)
 	center_crds_2D = np.zeros((2, N_centers))
 	sections_to_3D = np.zeros((N_centers, 4, 4))
 	section_normals = np.zeros((3, N_centers))
@@ -181,6 +181,14 @@ def main():
 			subsection_2Dcoord = np.linalg.solve(sections_to_3D[cent_i, :, :], \
 									             subsection_coord_augmented)[0:2, :]
 			sections_2D[-1].append(subsection_2Dcoord)
+
+			subsection_polygon = shapely.geometry.asPolygon(subsection_2Dcoord.T)
+			if(subsection_polygon.contains(shapely.geometry.asPoint(center_crds_2D[:, cent_i]))):
+				if(main_subsections_ids[cent_i] < 0):
+					main_subsections_ids[cent_i] = subsection_id
+				else:
+					print('ERROR: 2 polygons containing the center point were found. Aborting.')
+					sys.exit(1)
 		sections_3D.append(section)
 
 	lin_feauture_sq_u = lin_vertices_feautures
@@ -211,12 +219,10 @@ def main():
 				ax_protein.plot(center_coords[section_id, 0], center_coords[section_id, 1], center_coords[section_id, 2], \
 					               '.', markersize=10, color=my.colors[section_id_i], label=None)
 
-				center_2Dcoord_augmented = np.linalg.solve(sections_to_3D[section_id, :, :], \
-												         np.append(center_coords[section_id, :], 1).T)
 				if(to_draw_2D_sections):
 					fig_section, ax_section = my.get_fig("x'", "y'", title=section_title)
-					ax_section.scatter(center_2Dcoord_augmented[0], center_2Dcoord_augmented[1], \
-					                   s=10, color='red', label=('center' if subsection_id == 0 else None))
+					ax_section.scatter(center_crds_2D[0, section_id], center_crds_2D[1, section_id], marker='+', \
+						               color='red', label=('center' if subsection_id == 0 else None))
 
 				for subsection_id in range(len(sections_3D[section_id])):
 					subsection = sections_3D[section_id][subsection_id]
@@ -225,7 +231,7 @@ def main():
 
 					if(to_draw_2D_sections):
 						ax_section.plot(sections_2D[section_id][subsection_id][0, :], sections_2D[section_id][subsection_id][1, :], \
-					                    '.-', markersize=2, label='subsections ' + str(subsection_id))
+					                    '.-', markersize=2, label='subsection ' + str(subsection_id) + (' main' if subsection_id == main_subsections_ids[section_id] else ''))
 
 				if(to_draw_2D_sections):
 					fig_section.legend()
