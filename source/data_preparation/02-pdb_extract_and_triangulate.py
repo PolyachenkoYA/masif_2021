@@ -64,15 +64,15 @@ def get_lin_features_from_vertices(vertices, center_coords, vertices_features, R
 
 	return lin_feauture_sq_u
 
-def get_R_cor_sq(feature):
+def get_R_cor_sq(features):
 	# compute pairwise R-corellation
-	N_feat = feature.shape[1]
+	N_feat = features.shape[1]
 	R_cor = np.zeros((N_feat, N_feat))
 	for f1_i in range(N_feat):
 		R_cor[f1_i, f1_i] = 1
 		for f2_i in range(f1_i + 1, N_feat):
 			#print(scipy.stats.pearsonr(lin_feauture_sq_u[main_mode, :, f1_i], lin_feauture_sq_u[main_mode, :, f2_i]))
-			R_cor[f1_i, f2_i], _ = scipy.stats.pearsonr(feature[:, f1_i], feature[:, f2_i])
+			R_cor[f1_i, f2_i], _ = scipy.stats.pearsonr(features[:, f1_i], features[:, f2_i])
 			R_cor[f2_i, f1_i] = R_cor[f1_i, f2_i]
 
 	return R_cor
@@ -88,9 +88,9 @@ def main():
 	Rmin = 0.1  # nm
 	Rmax = 1  # nm
 
-	features_names = ['charges', 'hbond', 'hphobicity']
+	features_names = ['charge', '$H_{bond}$', '$H_{phobicity}$', '$S$', '$S_{conv}$']
 	N_feat = len(features_names)
-	chain_vec_avg = 2
+	chain_vec_avg = 1
 
 	### =============================== parse input ==============================
 	yes_flags = ['y', 'yes', '1']
@@ -152,14 +152,16 @@ def main():
 	vertices_features = np.concatenate((vertex_charges[np.newaxis, :], vertex_hbond[np.newaxis, :], vertex_hphobicity[np.newaxis, :]))
 	lin_vertices_feautures = get_lin_features_from_vertices(vertices, center_coords, vertices_features, Ravg)
 
-	regular_trimesh = trimesh.Trimesh(vertices=vertices, faces=regular_mesh.faces)
-	cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
+	main_sections_areas = np.zeros(N_centers)
+	main_sections_convex_areas = np.zeros(N_centers)
 	sections_3D = []
 	sections_2D = []
 	main_subsections_ids = - np.ones(N_centers, dtype=int)
 	center_crds_2D = np.zeros((2, N_centers))
 	sections_to_3D = np.zeros((N_centers, 4, 4))
 	section_normals = np.zeros((3, N_centers))
+	regular_trimesh = trimesh.Trimesh(vertices=vertices, faces=regular_mesh.faces)
+	cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
 	for cent_i in range(N_centers):
 		chain_vectors_to_average = chain_vectors[max(center_resd_indices[cent_i] - 1 - chain_vec_avg, 0) : \
 							                     min(center_resd_indices[cent_i] - 1 + chain_vec_avg, chain_vectors.shape[0] - 1), :]
@@ -186,23 +188,28 @@ def main():
 			if(subsection_polygon.contains(shapely.geometry.asPoint(center_crds_2D[:, cent_i]))):
 				if(main_subsections_ids[cent_i] < 0):
 					main_subsections_ids[cent_i] = subsection_id
+					main_sections_areas[cent_i] = subsection_polygon.area
+					main_sections_convex_areas[cent_i] = subsection_polygon.convex_hull.area
 				else:
 					print('ERROR: 2 polygons containing the center point were found. Aborting.')
 					sys.exit(1)
 		sections_3D.append(section)
 
-	lin_feauture_sq_u = lin_vertices_feautures
+	section_features = np.concatenate((my.unitize(main_sections_areas)[:, np.newaxis], my.unitize(main_sections_convex_areas)[:, np.newaxis]), axis=1)
+
+	lin_feauture_sq_u = np.concatenate((lin_vertices_feautures, section_features), axis=1)
 
 	### =============================== get R ===================================
 	R_cor = np.zeros((N_R, N_feat, N_feat))
 	R_arr = np.power(R_log_base, np.linspace(0, np.log(Rmax / Rmin) / np.log(R_log_base), N_R)) * Rmin
 	for R_i in range(N_R):
-		R_cor[R_i, :, :] = get_R_cor_sq(get_lin_features_from_vertices(vertices, center_coords, vertices_features, R_arr[R_i]))
+		lin_feautures = get_lin_features_from_vertices(vertices, center_coords, vertices_features, R_arr[R_i])
+		R_cor[R_i, :, :] = get_R_cor_sq(np.concatenate((lin_feautures, section_features), axis=1))
 		#print('R cor done: ' + str((R_i + 1) / N_R * 100) + ' %')
 
 	### ================== draw protein ======================
 	if(to_draw_centers or to_draw_atoms or to_draw_vertices):
-		fig_protein, ax_protein = my.get_fig('x (nm)', 'y (nm)', title='centers', projection='3d', zlbl='z (nm)')
+		fig_protein, ax_protein = my.get_fig('x (nm)', 'y (nm)', title='3D polymer', projection='3d', zlbl='z (nm)')
 		if(to_draw_centers):
 	 		ax_protein.plot3D(center_coords[:, 0], center_coords[:, 1], center_coords[:, 2], \
 		                      label='C:' + center_coords_names[main_mode])
@@ -222,7 +229,7 @@ def main():
 				if(to_draw_2D_sections):
 					fig_section, ax_section = my.get_fig("x'", "y'", title=section_title)
 					ax_section.scatter(center_crds_2D[0, section_id], center_crds_2D[1, section_id], marker='+', \
-						               color='red', label=('center' if subsection_id == 0 else None))
+						               color='red', label=('chain' if subsection_id == 0 else None))
 
 				for subsection_id in range(len(sections_3D[section_id])):
 					subsection = sections_3D[section_id][subsection_id]
@@ -231,7 +238,7 @@ def main():
 
 					if(to_draw_2D_sections):
 						ax_section.plot(sections_2D[section_id][subsection_id][0, :], sections_2D[section_id][subsection_id][1, :], \
-					                    '.-', markersize=2, label='subsection ' + str(subsection_id) + (' main' if subsection_id == main_subsections_ids[section_id] else ''))
+					                    '.-', markersize=2, label='subsec ' + str(subsection_id) + (('; S = ' + my.f2s(main_sections_areas[section_id]) + ' $nm^2$') if subsection_id == main_subsections_ids[section_id] else ''))
 
 				if(to_draw_2D_sections):
 					fig_section.legend()
@@ -248,11 +255,15 @@ def main():
 		fig_protein.legend()
 
 	if(to_plot_features):
-		fig_feat, ax_feat = my.get_fig('residue #', 'feature', title='features along the "' + center_coords_names[main_mode] + '"; $\sigma_{avg} = ' + str(Ravg) + '$')
+		fig_feats, ax_feats = my.get_fig('residue #', 'feature', title='features along the "' + center_coords_names[main_mode] + '"; $\sigma_{avg} = ' + str(Ravg) + '$')
 		for f_i in range(N_feat):
-			ax_feat.scatter((np.arange(N_centers) + 1) * (N_resd / N_centers), lin_feauture_sq_u[:, f_i], s=2, label=features_names[f_i])
-		ax_feat.plot([0, N_resd], [0, 0], label=None)
-		fig_feat.legend()
+			ax_feats.scatter((np.arange(N_centers) + 1) * (N_resd / N_centers), lin_feauture_sq_u[:, f_i], s=2, label=features_names[f_i])
+		ax_feats.plot([0, N_resd], [0, 0], label=None)
+		fig_feats.legend()
+
+# 		for f_i in range(N_feat):
+# 			fig_feat, ax_feat = my.get_fig('residue #', features_names[f_i], title='features along the "' + center_coords_names[main_mode] + '"; $\sigma_{avg} = ' + str(Ravg) + '$')
+# 			fig_feat.legend()
 
 	### ======================== save results ===========================
 	if(to_save_ply):
