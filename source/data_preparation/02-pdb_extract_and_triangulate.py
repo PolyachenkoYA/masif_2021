@@ -14,6 +14,8 @@ import trimesh
 import data_preparation.extract_and_triangulate_lib as ext_and_trg
 #from input_output.extractPDB import extractPDB
 #from input_output.save_ply import save_ply
+import triangulation
+import triangulation.meshcut as meshcut
 from  triangulation.make_surface import make_mesh
 import scipy
 import scipy.stats
@@ -90,6 +92,7 @@ def main():
 
 	features_names = ['charges', 'hbond', 'hphobicity']
 	N_feat = len(features_names)
+	chain_vec_avg = 2
 
 	### =============================== parse input ==============================
 	yes_flags = ['y', 'yes', '1']
@@ -145,10 +148,6 @@ def main():
 			interpolate_3Dpoints(center_coords_residues[center_type_i], N_centers)
 		chain_vectors.append(chain_vectors_local)
 
-# 	center_type_i = 2
-# 	center_coords[center_type_i, :, :], center_resd_indices[center_type_i, :], chain_vectors[center_type_i, :, :] = \
-# 		interpolate_3Dpoints(backbone_crds, N_centers)
-
 	### ==================== construct the mesh and compute features.===================
 	regular_mesh, vertex_normals, vertices, names = \
 	    ext_and_trg.msms_wrap(pdb_filepath, to_recompute=to_recompute)
@@ -161,13 +160,23 @@ def main():
 	lin_vertices_feautures = get_lin_features_from_vertices(vertices, center_coords, vertices_features, Ravg)
 
 	regular_trimesh = trimesh.Trimesh(vertices=vertices, faces=regular_mesh.faces)
+	cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
 	sections = []
 	sections_to_3D = np.zeros((N_center_types, N_centers, 4, 4))
+	section_normals = np.zeros((3, N_centers))
 	for center_type_i in range(N_center_types):
+		section_normals[:, 0] = chain_vectors[center_type_i][center_resd_indices[center_type_i, 0] - 1, :]
+		center_resd_indices[center_type_i, 0]
 		for cent_i in range(N_centers):
-			section, sections_to_3D[center_type_i, cent_i, :, :] = \
+			chain_vectors_to_average = chain_vectors[center_type_i][max(center_resd_indices[center_type_i, cent_i] - 1 - chain_vec_avg, 0) : \
+								                                    min(center_resd_indices[center_type_i, cent_i] - 1 + chain_vec_avg, chain_vectors[center_type_i].shape[0] - 1), :]
+			#section_normals[:, cent_i] = np.main(chain_vectors_to_average / np.linalg.norm(chain_vectors_to_average, axis=), axis=0)
+			section_normals[:, cent_i] = np.sum(chain_vectors_to_average, axis=0)
+			section = meshcut.cross_section_mesh(cut_mesh, meshcut.Plane(center_coords[center_type_i, cent_i, :], \
+												                         section_normals[:, cent_i]))   # trimesh does not separate closed subsections, this does, tho it works much slover
+			_, sections_to_3D[center_type_i, cent_i, :, :] = \
 				regular_trimesh.section(plane_origin=center_coords[center_type_i, cent_i, :], \
-									    plane_normal=chain_vectors[center_type_i][center_resd_indices[center_type_i, cent_i] - 1, :]).to_planar(check=False)
+								        plane_normal=section_normals[:, cent_i]).to_planar(check=False)
 			sections.append(section)
 
 	lin_feauture_sq_u = lin_vertices_feautures
@@ -192,29 +201,32 @@ def main():
 			ax_protein.scatter3D(molecule.xyz[0, :, 0], molecule.xyz[0, :, 1], molecule.xyz[0, :, 2], \
 			      label='A:' + center_coords_names[center_type_i], s=1)
 		if(to_draw_vertices):
-			ax_protein.plot_trisurf(regular_trimesh.vertices[:,0], regular_trimesh.vertices[:,1], regular_trimesh.vertices[:,2], triangles=regular_trimesh.faces, alpha=0.5)
-			#ax_protein.plot_trisurf(vertices[:,0], vertices[:,1], vertices[:,2], triangles=regular_mesh.faces, alpha=0.1)
+			ax_protein.plot_trisurf(vertices[:,0], vertices[:,1], vertices[:,2], triangles=regular_trimesh.faces, alpha=0.5)
 		if(id_sections_to_draw is not None):
 			for section_id_i in range(len(id_sections_to_draw)):
 				section_id = id_sections_to_draw[section_id_i]
-				N_section_vertices = sections[section_id].vertices.shape[0]
-				#print(sections[id_section_to_draw].vertices.shape)
-				#print(np.array([np.array([0, 1])] * N_section_vertices).shape)
-				section_2Dcoords_augmented = np.concatenate((sections[section_id].vertices, np.array([np.array([0, 1])] * N_section_vertices)), axis=1)
-				#print(section_2Dcoords_augmented.shape)
-				section_3Dcoords_augmented = np.matmul(sections_to_3D[main_mode, section_id, :, :], section_2Dcoords_augmented.T)
-				ax_protein.plot(section_3Dcoords_augmented[0, :], section_3Dcoords_augmented[1, :], section_3Dcoords_augmented[2, :], \
-					            '+', markersize=4, label='section ' + str(section_id), color=my.colors[section_id_i])
+				section_title = 'section ' + str(section_id)
 				ax_protein.plot(center_coords[main_mode, section_id, 0], center_coords[main_mode, section_id, 1], center_coords[main_mode, section_id, 2], \
 					               '.', markersize=10, color=my.colors[section_id_i], label=None)
-				#print(center_2Dcoord_augmented)
 
 				if(to_draw_2D_sections):
-					center_2Dcoord_augmented = np.linalg.solve(sections_to_3D[main_mode, section_id, :, :], \
-													         np.append(center_coords[main_mode, section_id, :], 1))
-					fig_section, ax_section = my.get_fig("x'", "y'")
-					ax_section.plot(sections[section_id].vertices[:, 0], sections[section_id].vertices[:, 1], '.-', markersize=2)
-					ax_section.scatter(center_2Dcoord_augmented[0], center_2Dcoord_augmented[1], s=10, color='red', label='center')
+					fig_section, ax_section = my.get_fig("x'", "y'", title=section_title)
+
+				for subsection_id in range(len(sections[section_id])):
+					section = sections[section_id][subsection_id]
+					ax_protein.plot(section[:, 0], section[:, 1], section[:, 2], \
+					               '+', markersize=4, label=(section_title if subsection_id == 0 else None), color=my.colors[section_id_i])
+
+					if(to_draw_2D_sections):
+						section_augmented = np.concatenate((section.T, np.ones((1, section.shape[0]))), axis=0)
+						section_2Dcoord_augmented = np.linalg.solve(sections_to_3D[main_mode, section_id, :, :], \
+														            np.concatenate((section.T, np.ones((1, section.shape[0]))), axis=0))
+						center_2Dcoord_augmented = np.linalg.solve(sections_to_3D[main_mode, section_id, :, :], \
+														         np.append(center_coords[main_mode, section_id, :], 1).T)
+						ax_section.plot(section_2Dcoord_augmented[0, :], section_2Dcoord_augmented[1, :], '.-', markersize=2, label='subsections ' + str(subsection_id))
+						ax_section.scatter(center_2Dcoord_augmented[0], center_2Dcoord_augmented[1], s=10, color='red', label=('center' if subsection_id == 0 else None))
+
+				if(to_draw_2D_sections):
 					fig_section.legend()
 
 	### ================== plot results ======================
