@@ -161,7 +161,8 @@ def main():
 
 	regular_trimesh = trimesh.Trimesh(vertices=vertices, faces=regular_mesh.faces)
 	cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
-	sections = []
+	sections_3D = []
+	sections_2D = []
 	sections_to_3D = np.zeros((N_center_types, N_centers, 4, 4))
 	section_normals = np.zeros((3, N_centers))
 	for center_type_i in range(N_center_types):
@@ -177,7 +178,14 @@ def main():
 			_, sections_to_3D[center_type_i, cent_i, :, :] = \
 				regular_trimesh.section(plane_origin=center_coords[center_type_i, cent_i, :], \
 								        plane_normal=section_normals[:, cent_i]).to_planar(check=False)
-			sections.append(section)
+
+			sections_2D.append([])
+			for subsection_id in range(len(section)):
+				section[subsection_id] = section[subsection_id].T
+				subsection_coord_augmented = np.concatenate((section[subsection_id], np.ones((1, section[subsection_id].shape[1]))), axis=0)
+				subsection_2Dcoord = np.linalg.solve(sections_to_3D[main_mode, cent_i, :, :], subsection_coord_augmented)[0:2, :]
+				sections_2D[-1].append(subsection_2Dcoord)
+			sections_3D.append(section)
 
 	lin_feauture_sq_u = lin_vertices_feautures
 
@@ -201,7 +209,8 @@ def main():
 			ax_protein.scatter3D(molecule.xyz[0, :, 0], molecule.xyz[0, :, 1], molecule.xyz[0, :, 2], \
 			      label='A:' + center_coords_names[center_type_i], s=1)
 		if(to_draw_vertices):
-			ax_protein.plot_trisurf(vertices[:,0], vertices[:,1], vertices[:,2], triangles=regular_trimesh.faces, alpha=0.5)
+			ax_protein.plot_trisurf(regular_trimesh.vertices[:,0], regular_trimesh.vertices[:,1], regular_trimesh.vertices[:,2], \
+						            triangles=regular_trimesh.faces, alpha=0.5)
 		if(id_sections_to_draw is not None):
 			for section_id_i in range(len(id_sections_to_draw)):
 				section_id = id_sections_to_draw[section_id_i]
@@ -212,19 +221,18 @@ def main():
 				if(to_draw_2D_sections):
 					fig_section, ax_section = my.get_fig("x'", "y'", title=section_title)
 
-				for subsection_id in range(len(sections[section_id])):
-					section = sections[section_id][subsection_id]
-					ax_protein.plot(section[:, 0], section[:, 1], section[:, 2], \
+				for subsection_id in range(len(sections_3D[section_id])):
+					subsection = sections_3D[section_id][subsection_id]
+					ax_protein.plot(subsection[0, :], subsection[1, :], subsection[2, :], \
 					               '+', markersize=4, label=(section_title if subsection_id == 0 else None), color=my.colors[section_id_i])
 
 					if(to_draw_2D_sections):
-						section_augmented = np.concatenate((section.T, np.ones((1, section.shape[0]))), axis=0)
-						section_2Dcoord_augmented = np.linalg.solve(sections_to_3D[main_mode, section_id, :, :], \
-														            np.concatenate((section.T, np.ones((1, section.shape[0]))), axis=0))
 						center_2Dcoord_augmented = np.linalg.solve(sections_to_3D[main_mode, section_id, :, :], \
 														         np.append(center_coords[main_mode, section_id, :], 1).T)
-						ax_section.plot(section_2Dcoord_augmented[0, :], section_2Dcoord_augmented[1, :], '.-', markersize=2, label='subsections ' + str(subsection_id))
-						ax_section.scatter(center_2Dcoord_augmented[0], center_2Dcoord_augmented[1], s=10, color='red', label=('center' if subsection_id == 0 else None))
+						ax_section.plot(sections_2D[section_id][subsection_id][0, :], sections_2D[section_id][subsection_id][1, :], \
+					                    '.-', markersize=2, label='subsections ' + str(subsection_id))
+						ax_section.scatter(center_2Dcoord_augmented[0], center_2Dcoord_augmented[1], \
+						                   s=10, color='red', label=('center' if subsection_id == 0 else None))
 
 				if(to_draw_2D_sections):
 					fig_section.legend()
