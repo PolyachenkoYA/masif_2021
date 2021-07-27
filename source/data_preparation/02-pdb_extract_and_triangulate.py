@@ -49,30 +49,30 @@ def get_lin_features_from_vertices(vertices, center_coords, vertices_features, R
 	# compute features averaged from vertices around the points in the center_coords
 	N_resd = center_coords.shape[0]
 	N_feat = vertices_features.shape[0]
-	lin_feauture_sq = np.zeros((N_resd, N_feat))
-	lin_feauture_sq_u = np.zeros((N_resd, N_feat))
+	lin_feautures = np.zeros((N_resd, N_feat))
 	for res_i in range(N_resd):
 		crds = vertices - center_coords[res_i, :]
 		dists = np.linalg.norm(crds, axis=1)
 		w = np.exp( - np.power(dists, 2) / (2 * Ravg**2))   # Ravg=0.23 is optimal here
 		#w = np.heaviside(Ravg - dists, 0)  # Ravg = 0.43 is optimal here
 		for f_i in range(N_feat):
-			lin_feauture_sq[res_i, f_i] = np.sum(vertices_features[f_i, :] * w)
+			lin_feautures[res_i, f_i] = np.sum(vertices_features[f_i, :] * w) / np.sum(w)
 
-	for f_i in range(N_feat):
-		lin_feauture_sq_u[:, f_i] = my.unitize(lin_feauture_sq[:, f_i])
+	return lin_feautures
 
-	return lin_feauture_sq_u
-
-def get_R_cor_sq(features):
+def get_R_cor_sq(features, to_normalize=True):
 	# compute pairwise R-corellation
 	N_feat = features.shape[1]
 	R_cor = np.zeros((N_feat, N_feat))
 	for f1_i in range(N_feat):
 		R_cor[f1_i, f1_i] = 1
 		for f2_i in range(f1_i + 1, N_feat):
-			#print(scipy.stats.pearsonr(lin_feauture_sq_u[main_mode, :, f1_i], lin_feauture_sq_u[main_mode, :, f2_i]))
-			R_cor[f1_i, f2_i], _ = scipy.stats.pearsonr(features[:, f1_i], features[:, f2_i])
+			f1 = features[:, f1_i]
+			f2 = features[:, f2_i]
+			if(to_normalize):
+				f1 = my.unitize(f1)
+				f2 = my.unitize(f2)
+			R_cor[f1_i, f2_i], _ = scipy.stats.pearsonr(f1, f2)
 			R_cor[f2_i, f1_i] = R_cor[f1_i, f2_i]
 
 	return R_cor
@@ -88,7 +88,7 @@ def main():
 	Rmin = 0.1  # nm
 	Rmax = 1  # nm
 
-	features_names = ['charge', '$H_{bond}$', '$H_{phobicity}$', '$S$', '$S_{conv}$']
+	features_names = ['charge', '$H_{bond}$', '$H_{phob}$', '$S$ ($nm^2$)', '$S_{conv}$ ($nm^2$)', '$S_{conv} / S$']
 	N_feat = len(features_names)
 	chain_vec_avg = 1
 
@@ -96,20 +96,23 @@ def main():
 	yes_flags = ['y', 'yes', '1']
 	no_flags = ['n', 'no', '0']
 	yn_flgs = yes_flags + no_flags
-	[pdb_filebase, Ravg, to_recompute, to_save_ply, to_draw_centers, to_draw_atoms, to_draw_vertices, to_plot_features, id_sections_to_draw, to_draw_2D_sections], _ = \
-		my.parse_args(sys.argv[1:], ['-file', '-R', '-recompute', '-save_ply_mesh', '-draw_centers', '-draw_atoms', '-draw_vertices', '-plot_features', '-section_to_draw', '-draw_2D_sections'], \
-					   possible_values=[None, None, yn_flgs, yn_flgs, yn_flgs, yn_flgs, yn_flgs, yn_flgs, None, yn_flgs], \
-					   possible_arg_numbers=[[1], [1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], None, [0, 1]], \
-					   default_values=[None, None, [yes_flags[0]], [no_flags[0]], [yes_flags[0]], [yes_flags[0]], [yes_flags[0]], [yes_flags[0]], None, [yes_flags[0]]])
+	[pdb_filebase, Ravg, to_recompute, to_save_ply, to_draw_centers, to_draw_atoms, to_draw_vertices, to_plot_features, id_sections_to_draw, to_draw_2D_sections, to_plot_normalized_features], _ = \
+		my.parse_args(sys.argv[1:], ['-file', '-R', '-recompute', '-save_ply_mesh', '-draw_centers', '-draw_atoms', '-draw_vertices', '-plot_features', '-section_to_draw', '-draw_2D_sections', '-plot_normalized_features'], \
+					   possible_values=[None, None, yn_flgs, yn_flgs, yn_flgs, yn_flgs, yn_flgs, yn_flgs, None, yn_flgs, yn_flgs], \
+					   possible_arg_numbers=[[1], [1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], None, [0, 1], [0, 1]], \
+					   default_values=[None, None, [yes_flags[0]], [no_flags[0]], [yes_flags[0]], [yes_flags[0]], [yes_flags[0]], [yes_flags[0]], None, [yes_flags[0]], [yes_flags[0]]])
 	Ravg = float(Ravg)
 	to_recompute = (to_recompute[0] in yes_flags)
 	to_save_ply = (to_save_ply[0] in yes_flags)
 	to_draw_centers = (to_draw_centers[0] in yes_flags)
 	to_draw_atoms = (to_draw_atoms[0] in yes_flags)
 	to_draw_vertices = (to_draw_vertices[0] in yes_flags)
+	to_plot_features = (to_plot_features[0] in yes_flags)
 	if(id_sections_to_draw is not None):
 		id_sections_to_draw = [int(s) for s in id_sections_to_draw]
 	to_draw_2D_sections = (to_draw_2D_sections[0] in yes_flags)
+	to_plot_normalized_features = (to_plot_normalized_features[0] in yes_flags)
+
 	### =================== make the dirs ======================
 	pdb_filename = pdb_filebase + '.pdb'
 	pdb_filepath_base = os.path.join(my.git_root_path(), 'data', 'linear_avg', pdb_filebase)
@@ -149,7 +152,9 @@ def main():
 	vertices = regular_mesh.vertices / 10   # looks like MaSIF pipeline works in (A) but not in (nm)
 
 	### ================== comp features ======================
-	vertices_features = np.concatenate((vertex_charges[np.newaxis, :], vertex_hbond[np.newaxis, :], vertex_hphobicity[np.newaxis, :]))
+	vertices_features = np.concatenate((vertex_charges[np.newaxis, :], \
+									    vertex_hbond[np.newaxis, :], \
+										vertex_hphobicity[np.newaxis, :]))
 	lin_vertices_feautures = get_lin_features_from_vertices(vertices, center_coords, vertices_features, Ravg)
 
 	main_sections_areas = np.zeros(N_centers)
@@ -195,16 +200,20 @@ def main():
 					sys.exit(1)
 		sections_3D.append(section)
 
-	section_features = np.concatenate((my.unitize(main_sections_areas)[:, np.newaxis], my.unitize(main_sections_convex_areas)[:, np.newaxis]), axis=1)
+		print('sections comp: ' + my.f2s((cent_i + 1) / N_centers * 100) + ' %               \r', end='')
 
-	lin_feauture_sq_u = np.concatenate((lin_vertices_feautures, section_features), axis=1)
+	section_features = np.concatenate((main_sections_areas[:, np.newaxis], \
+									   main_sections_convex_areas[:, np.newaxis], \
+									   (main_sections_convex_areas / main_sections_areas)[:, np.newaxis]), axis=1)
+
+	lin_feautures = np.concatenate((lin_vertices_feautures, section_features), axis=1)
 
 	### =============================== get R ===================================
 	R_cor = np.zeros((N_R, N_feat, N_feat))
 	R_arr = np.power(R_log_base, np.linspace(0, np.log(Rmax / Rmin) / np.log(R_log_base), N_R)) * Rmin
 	for R_i in range(N_R):
-		lin_feautures = get_lin_features_from_vertices(vertices, center_coords, vertices_features, R_arr[R_i])
-		R_cor[R_i, :, :] = get_R_cor_sq(np.concatenate((lin_feautures, section_features), axis=1))
+		R_cor[R_i, :, :] = get_R_cor_sq(np.concatenate((get_lin_features_from_vertices(vertices, center_coords, vertices_features, R_arr[R_i]), \
+												        section_features), axis=1))
 		#print('R cor done: ' + str((R_i + 1) / N_R * 100) + ' %')
 
 	### ================== draw protein ======================
@@ -254,16 +263,21 @@ def main():
 	if(to_draw_centers or to_draw_atoms or to_draw_vertices):
 		fig_protein.legend()
 
-	if(to_plot_features):
+	if(to_plot_normalized_features):
 		fig_feats, ax_feats = my.get_fig('residue #', 'feature', title='features along the "' + center_coords_names[main_mode] + '"; $\sigma_{avg} = ' + str(Ravg) + '$')
+		residue_index_x = (np.arange(N_centers) + 1) * (N_resd / N_centers)
 		for f_i in range(N_feat):
-			ax_feats.scatter((np.arange(N_centers) + 1) * (N_resd / N_centers), lin_feauture_sq_u[:, f_i], s=2, label=features_names[f_i])
+			ax_feats.plot(residue_index_x, my.unitize(lin_feautures[:, f_i]), '-.', label=features_names[f_i])
 		ax_feats.plot([0, N_resd], [0, 0], label=None)
 		fig_feats.legend()
 
-# 		for f_i in range(N_feat):
-# 			fig_feat, ax_feat = my.get_fig('residue #', features_names[f_i], title='features along the "' + center_coords_names[main_mode] + '"; $\sigma_{avg} = ' + str(Ravg) + '$')
-# 			fig_feat.legend()
+	if(to_plot_features):
+		residue_index_x = (np.arange(N_centers) + 1) * (N_resd / N_centers)
+		residue_index_x = np.arange(N_centers)
+		for f_i in range(N_feat):
+			fig_feat, ax_feat = my.get_fig('center # ~ (residue #)x' + str(N_interp_scale), features_names[f_i], title=features_names[f_i])
+			ax_feat.plot(residue_index_x, lin_feautures[:, f_i], '-o', markersize=2)
+			#fig_feat.legend()
 
 	### ======================== save results ===========================
 	if(to_save_ply):
