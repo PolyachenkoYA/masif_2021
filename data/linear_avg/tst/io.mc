@@ -1,6 +1,6 @@
 ##############################################################################
 # MC-shell I/O capture file.
-# Creation Date and Time:  Fri Jul 23 13:34:39 2021
+# Creation Date and Time:  Tue Jul 27 16:52:32 2021
 
 ##############################################################################
 Hello world from PE 0
@@ -69,21 +69,21 @@ Valist_readPQR: Counted 546 atoms
 Valist_getStatistics:  Max atom coordinate:  (61.02, 60.72, 61.55)
 Valist_getStatistics:  Min atom coordinate:  (22.74, 23.04, 22.22)
 Valist_getStatistics:  Molecule center:  (41.88, 41.88, 41.885)
-NOsh_setupCalcMGAUTO(/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1848):  coarse grid center = 41.88 41.88 41.885
-NOsh_setupCalcMGAUTO(/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1853):  fine grid center = 41.88 41.88 41.885
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1865):  Coarse grid spacing = 0.545594, 0.537625, 0.559539
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1867):  Fine grid spacing = 0.477187, 0.4725, 0.485391
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1869):  Displacement between fine and coarse grids = 0, 0, 0
+NOsh_setupCalcMGAUTO(/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1855):  coarse grid center = 41.88 41.88 41.885
+NOsh_setupCalcMGAUTO(/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1860):  fine grid center = 41.88 41.88 41.885
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1872):  Coarse grid spacing = 0.545594, 0.537625, 0.559539
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1874):  Fine grid spacing = 0.477187, 0.4725, 0.485391
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1876):  Displacement between fine and coarse grids = 0, 0, 0
 NOsh:  2 levels of focusing with 0.874621, 0.878865, 0.867483 reductions
 NOsh_setupMGAUTO:  Resetting boundary flags
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1963):  starting mesh repositioning.
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1965):  coarse mesh center = 41.88 41.88 41.885
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1970):  coarse mesh upper corner = 76.798 76.288 77.6955
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1975):  coarse mesh lower corner = 6.962 7.472 6.0745
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1980):  initial fine mesh upper corner = 72.42 72.12 72.95
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 1985):  initial fine mesh lower corner = 11.34 11.64 10.82
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 2046):  final fine mesh upper corner = 72.42 72.12 72.95
-NOsh_setupCalcMGAUTO (/home/conda/feedstock_root/build_artifacts/apbs_1559244871348/work/apbs/src/generic/nosh.c, 2051):  final fine mesh lower corner = 11.34 11.64 10.82
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1970):  starting mesh repositioning.
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1972):  coarse mesh center = 41.88 41.88 41.885
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1977):  coarse mesh upper corner = 76.798 76.288 77.6955
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1982):  coarse mesh lower corner = 6.962 7.472 6.0745
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1987):  initial fine mesh upper corner = 72.42 72.12 72.95
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 1992):  initial fine mesh lower corner = 11.34 11.64 10.82
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 2053):  final fine mesh upper corner = 72.42 72.12 72.95
+NOsh_setupCalcMGAUTO (/home/ubuntu/git/apbs-pdb2pqr/apbs/src/generic/nosh.c, 2058):  final fine mesh lower corner = 11.34 11.64 10.82
 NOsh_setupMGAUTO:  Resetting boundary flags
 NOsh_setupCalc:  Mapping ELEC statement 0 (1) to calculation 1 (2)
 Vnm_tstart: starting timer 27 (Setup timer)..
@@ -114,25 +114,25 @@ fillcoCharge:  Calling fillcoChargeSpline2...
 Vpmg_fillco:  filling in source term.
 Vpmg_fillco:  marking ion and solvent accessibility.
 fillcoCoef:  Calling fillcoCoefMol...
-Vacc_SASA: Time elapsed: 0.026307
+Vacc_SASA: Time elapsed: 0.182150
 Vpmg_fillco:  done filling coefficient arrays
 Vpmg_fillco:  filling boundary arrays
 Vpmg_fillco:  done filling boundary arrays
-Vnm_tstop: stopping timer 27 (Setup timer).  CPU TIME = 2.751750e-01
+Vnm_tstop: stopping timer 27 (Setup timer).  CPU TIME = 6.356050e-01
 Vnm_tstart: starting timer 28 (Solver timer)..
 Vnm_tstart: starting timer 30 (Vmgdrv2: fine problem setup)..
 Vbuildops: Fine: (129, 129, 129)
 Vbuildops: Operator stencil (lev, numdia) = (1, 4)
-Vnm_tstop: stopping timer 30 (Vmgdrv2: fine problem setup).  CPU TIME = 4.107100e-02
+Vnm_tstop: stopping timer 30 (Vmgdrv2: fine problem setup).  CPU TIME = 4.134200e-02
 Vnm_tstart: starting timer 30 (Vmgdrv2: coarse problem setup)..
 Vbuildops: Galer: (065, 065, 065)
 Vbuildops: Galer: (033, 033, 033)
 Vbuildops: Galer: (017, 017, 017)
 Vbuildops: Galer: (009, 009, 009)
 Vbuildops: Galer: (005, 005, 005)
-Vnm_tstop: stopping timer 30 (Vmgdrv2: coarse problem setup).  CPU TIME = 1.447510e-01
+Vnm_tstop: stopping timer 30 (Vmgdrv2: coarse problem setup).  CPU TIME = 4.441860e-01
 Vnm_tstart: starting timer 30 (Vmgdrv2: solve)..
-Vnm_tstop: stopping timer 40 (MG iteration).  CPU TIME = 4.905260e-01
+Vnm_tstop: stopping timer 40 (MG iteration).  CPU TIME = 1.199893e+00
 Vprtstp: iteration = 0
 Vprtstp: relative residual = 1.000000e+00
 Vprtstp: contraction number = 1.000000e+00
@@ -157,8 +157,8 @@ Vprtstp: contraction number = 1.418533e-01
 Vprtstp: iteration = 7
 Vprtstp: relative residual = 5.857605e-07
 Vprtstp: contraction number = 1.540029e-01
-Vnm_tstop: stopping timer 30 (Vmgdrv2: solve).  CPU TIME = 9.496800e-01
-Vnm_tstop: stopping timer 28 (Solver timer).  CPU TIME = 1.160449e+00
+Vnm_tstop: stopping timer 30 (Vmgdrv2: solve).  CPU TIME = 1.023589e+01
+Vnm_tstop: stopping timer 28 (Solver timer).  CPU TIME = 1.079492e+01
 Vpmg_setPart:  lower corner = (6.962, 7.472, 6.0745)
 Vpmg_setPart:  upper corner = (76.798, 76.288, 77.6955)
 Vpmg_setPart:  actual minima = (6.962, 7.472, 6.0745)
@@ -173,7 +173,7 @@ Vnm_tstart: starting timer 29 (Energy timer)..
 Vpmg_energy:  calculating only q-phi energy
 Vpmg_qfEnergyVolume:  Calculating energy
 Vpmg_energy:  qfEnergy = 1.955401321152E+04 kT
-Vnm_tstop: stopping timer 29 (Energy timer).  CPU TIME = 3.181000e-03
+Vnm_tstop: stopping timer 29 (Energy timer).  CPU TIME = 2.633000e-03
 Vnm_tstart: starting timer 30 (Force timer)..
 Vnm_tstop: stopping timer 30 (Force timer).  CPU TIME = 0.000000e+00
 Vnm_tstart: starting timer 27 (Setup timer)..
@@ -230,23 +230,23 @@ fillcoCharge:  Calling fillcoChargeSpline2...
 Vpmg_fillco:  filling in source term.
 Vpmg_fillco:  marking ion and solvent accessibility.
 fillcoCoef:  Calling fillcoCoefMol...
-Vacc_SASA: Time elapsed: 0.025356
+Vacc_SASA: Time elapsed: 0.183231
 Vpmg_fillco:  done filling coefficient arrays
-Vnm_tstop: stopping timer 27 (Setup timer).  CPU TIME = 3.533350e-01
+Vnm_tstop: stopping timer 27 (Setup timer).  CPU TIME = 7.416990e-01
 Vnm_tstart: starting timer 28 (Solver timer)..
 Vnm_tstart: starting timer 30 (Vmgdrv2: fine problem setup)..
 Vbuildops: Fine: (129, 129, 129)
 Vbuildops: Operator stencil (lev, numdia) = (1, 4)
-Vnm_tstop: stopping timer 30 (Vmgdrv2: fine problem setup).  CPU TIME = 4.120200e-02
+Vnm_tstop: stopping timer 30 (Vmgdrv2: fine problem setup).  CPU TIME = 4.142400e-02
 Vnm_tstart: starting timer 30 (Vmgdrv2: coarse problem setup)..
 Vbuildops: Galer: (065, 065, 065)
 Vbuildops: Galer: (033, 033, 033)
 Vbuildops: Galer: (017, 017, 017)
 Vbuildops: Galer: (009, 009, 009)
 Vbuildops: Galer: (005, 005, 005)
-Vnm_tstop: stopping timer 30 (Vmgdrv2: coarse problem setup).  CPU TIME = 1.409360e-01
+Vnm_tstop: stopping timer 30 (Vmgdrv2: coarse problem setup).  CPU TIME = 4.418590e-01
 Vnm_tstart: starting timer 30 (Vmgdrv2: solve)..
-Vnm_tstop: stopping timer 40 (MG iteration).  CPU TIME = 2.012805e+00
+Vnm_tstop: stopping timer 40 (MG iteration).  CPU TIME = 1.288964e+01
 Vprtstp: iteration = 0
 Vprtstp: relative residual = 1.000000e+00
 Vprtstp: contraction number = 1.000000e+00
@@ -271,8 +271,8 @@ Vprtstp: contraction number = 1.511967e-01
 Vprtstp: iteration = 7
 Vprtstp: relative residual = 7.672937e-07
 Vprtstp: contraction number = 1.667454e-01
-Vnm_tstop: stopping timer 30 (Vmgdrv2: solve).  CPU TIME = 9.441820e-01
-Vnm_tstop: stopping timer 28 (Solver timer).  CPU TIME = 1.152881e+00
+Vnm_tstop: stopping timer 30 (Vmgdrv2: solve).  CPU TIME = 1.042375e+01
+Vnm_tstop: stopping timer 28 (Solver timer).  CPU TIME = 1.097447e+01
 Vpmg_setPart:  lower corner = (11.34, 11.64, 10.82)
 Vpmg_setPart:  upper corner = (72.42, 72.12, 72.95)
 Vpmg_setPart:  actual minima = (11.34, 11.64, 10.82)
@@ -287,18 +287,18 @@ Vnm_tstart: starting timer 29 (Energy timer)..
 Vpmg_energy:  calculating only q-phi energy
 Vpmg_qfEnergyVolume:  Calculating energy
 Vpmg_energy:  qfEnergy = 2.454371447621E+04 kT
-Vnm_tstop: stopping timer 29 (Energy timer).  CPU TIME = 3.204000e-03
+Vnm_tstop: stopping timer 29 (Energy timer).  CPU TIME = 2.501000e-03
 Vnm_tstart: starting timer 30 (Force timer)..
-Vnm_tstop: stopping timer 30 (Force timer).  CPU TIME = 0.000000e+00
+Vnm_tstop: stopping timer 30 (Force timer).  CPU TIME = 1.000000e-06
 Vgrid_writeDX:  Opening virtual socket...
 Vgrid_writeDX:  Writing to virtual socket...
 Vgrid_writeDX:  Writing comments for ASC format.
 printEnergy:  Performing global reduction (sum)
 Vcom_reduce:  Not compiled with MPI, doing simple copy.
-Vnm_tstop: stopping timer 26 (APBS WALL CLOCK).  CPU TIME = 3.437256e+00
+Vnm_tstop: stopping timer 26 (APBS WALL CLOCK).  CPU TIME = 2.390242e+01
 ##############################################################################
 # MC-shell I/O capture file.
-# Creation Date and Time:  Fri Jul 23 13:34:42 2021
+# Creation Date and Time:  Tue Jul 27 16:52:35 2021
 
 ##############################################################################
 Vgrid_readDX:  Grid dimensions 129 x 129 x 129 grid

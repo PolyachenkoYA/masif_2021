@@ -30,10 +30,12 @@ def computeAPBS(vertices, pdb_file, tmp_file_base):
         pdbname,
         filename_base,
     ]
+    print(' '.join(args))
     p2 = Popen(args, stdout=PIPE, stderr=PIPE, cwd=directory)
     stdout, stderr = p2.communicate()
 
     args = [apbs_bin, filename_base + ".in"]
+    print(' '.join(args))
     p2 = Popen(args, stdout=PIPE, stderr=PIPE, cwd=directory)
     stdout, stderr = p2.communicate()
 
@@ -48,6 +50,7 @@ def computeAPBS(vertices, pdb_file, tmp_file_base):
         filename_base + ".dx",
         filename_base + "_out.csv",
     ]
+    print(' '.join(args))
     p2 = Popen(args, stdout=PIPE, stderr=PIPE, cwd=directory)
     stdout, stderr = p2.communicate()
 
