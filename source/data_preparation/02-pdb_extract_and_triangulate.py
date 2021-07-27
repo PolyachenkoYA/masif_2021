@@ -49,18 +49,18 @@ def get_lin_features_from_vertices(vertices, center_coords, vertices_features, R
 	# compute features averaged from vertices around the points in the center_coords
 	N_resd = center_coords.shape[0]
 	N_feat = vertices_features.shape[0]
-	lin_feautures = np.zeros((N_resd, N_feat))
+	lin_features = np.zeros((N_resd, N_feat))
 	for res_i in range(N_resd):
 		crds = vertices - center_coords[res_i, :]
 		dists = np.linalg.norm(crds, axis=1)
 		w = np.exp( - np.power(dists, 2) / (2 * Ravg**2))   # Ravg=0.23 is optimal here
 		#w = np.heaviside(Ravg - dists, 0)  # Ravg = 0.43 is optimal here
 		for f_i in range(N_feat):
-			lin_feautures[res_i, f_i] = np.sum(vertices_features[f_i, :] * w) / np.sum(w)
+			lin_features[res_i, f_i] = np.sum(vertices_features[f_i, :] * w) / np.sum(w)
 
-	return lin_feautures
+	return lin_features
 
-def get_R_cor_sq(features, to_normalize=True):
+def comp_R_cor(features, to_normalize=True):
 	# compute pairwise R-corellation
 	N_feat = features.shape[1]
 	R_cor = np.zeros((N_feat, N_feat))
@@ -77,16 +77,23 @@ def get_R_cor_sq(features, to_normalize=True):
 
 	return R_cor
 
+def get_R_cor(vertices, center_coords, vertices_features, section_features, N_R=20, Rmax=1, Rmin=0.1, R_log_base=1.1):
+	N_feat = vertices_features.shape[0] + section_features.shape[1]
+	R_cor = np.zeros((N_R, N_feat, N_feat))
+	R_arr = np.power(R_log_base, np.linspace(0, np.log(Rmax / Rmin) / np.log(R_log_base), N_R)) * Rmin
+	for R_i in range(N_R):
+		R_cor[R_i, :, :] = comp_R_cor(np.concatenate((get_lin_features_from_vertices(vertices, center_coords, vertices_features, R_arr[R_i]), \
+												        section_features), axis=1))
+			#print('R cor done: ' + str((R_i + 1) / N_R * 100) + ' %')
+
+	return R_cor, R_arr
+
 def main():
 	center_coords_names = ['CA centers', 'center-of-mass positions', 'backbone']
 	main_mode = 0
 	#N_center_types = len(center_coords_names)
 
 	N_interp_scale = 5
-	N_R = 20  # log space
-	R_log_base = 1.1
-	Rmin = 0.1  # nm
-	Rmax = 1  # nm
 
 	features_names = ['charge', '$H_{bond}$', '$H_{phob}$', '$S$ ($nm^2$)', '$S_{conv}$ ($nm^2$)', '$S_{conv} / S$']
 	N_feat = len(features_names)
@@ -206,15 +213,10 @@ def main():
 									   main_sections_convex_areas[:, np.newaxis], \
 									   (main_sections_convex_areas / main_sections_areas)[:, np.newaxis]), axis=1)
 
-	lin_feautures = np.concatenate((lin_vertices_feautures, section_features), axis=1)
+	lin_features = np.concatenate((lin_vertices_feautures, section_features), axis=1)
 
 	### =============================== get R ===================================
-	R_cor = np.zeros((N_R, N_feat, N_feat))
-	R_arr = np.power(R_log_base, np.linspace(0, np.log(Rmax / Rmin) / np.log(R_log_base), N_R)) * Rmin
-	for R_i in range(N_R):
-		R_cor[R_i, :, :] = get_R_cor_sq(np.concatenate((get_lin_features_from_vertices(vertices, center_coords, vertices_features, R_arr[R_i]), \
-												        section_features), axis=1))
-		#print('R cor done: ' + str((R_i + 1) / N_R * 100) + ' %')
+	R_cor, R_arr = get_R_cor(vertices, center_coords, vertices_features, section_features)
 
 	### ================== draw protein ======================
 	if(to_draw_centers or to_draw_atoms or to_draw_vertices):
@@ -267,7 +269,7 @@ def main():
 		fig_feats, ax_feats = my.get_fig('residue #', 'feature', title='features along the "' + center_coords_names[main_mode] + '"; $\sigma_{avg} = ' + str(Ravg) + '$')
 		residue_index_x = (np.arange(N_centers) + 1) * (N_resd / N_centers)
 		for f_i in range(N_feat):
-			ax_feats.plot(residue_index_x, my.unitize(lin_feautures[:, f_i]), '-.', label=features_names[f_i])
+			ax_feats.plot(residue_index_x, my.unitize(lin_features[:, f_i]), '-.', label=features_names[f_i])
 		ax_feats.plot([0, N_resd], [0, 0], label=None)
 		fig_feats.legend()
 
@@ -276,7 +278,7 @@ def main():
 		residue_index_x = np.arange(N_centers)
 		for f_i in range(N_feat):
 			fig_feat, ax_feat = my.get_fig('center # ~ (residue #)x' + str(N_interp_scale), features_names[f_i], title=features_names[f_i])
-			ax_feat.plot(residue_index_x, lin_feautures[:, f_i], '-o', markersize=2)
+			ax_feat.plot(residue_index_x, lin_features[:, f_i], '-o', markersize=2)
 			#fig_feat.legend()
 
 	### ======================== save results ===========================
