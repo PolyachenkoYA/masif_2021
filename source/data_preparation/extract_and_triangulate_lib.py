@@ -56,16 +56,16 @@ def parse_names(arg, tmp_dir=None, git_root=my.git_root_path(), verbose=True):
     chain_filepath = chain_filepath_base + '.pdb'
     return pdb_name, chain_name, pdb_filepath, chain_filepath_base, chain_filepath
 
-def msms_wrap(chain_filepath, verbose=True, to_recompute=False):
+def msms_wrap(chain_filepath, verbose=True):
     if(verbose):
         print('performing MSMS on', chain_filepath)
-    vertices, faces, normals, names, areas = computeMSMS(chain_filepath, have_xyzrn=True, to_recompute=to_recompute)
+    vertices, faces, normals, names, areas = computeMSMS(chain_filepath, have_xyzrn=True)
     mesh = pymesh.form_mesh(vertices, faces)
     regular_mesh = fix_mesh(mesh, masif_opts['mesh_res'])
     vertex_normals = compute_normal(regular_mesh.vertices, regular_mesh.faces)
     return regular_mesh, vertex_normals, vertices, names
 
-def compute_features(chain_filepath_base, vertices, names, regular_mesh, verbose=True, to_recompute=False):
+def compute_features(chain_filepath_base, vertices, names, regular_mesh, verbose=True):
     if(verbose):
         print('computing features for "', chain_filepath_base, '"')
     vertex_hbond = computeCharges(chain_filepath_base, vertices, names) if masif_opts['use_hbond'] else None
@@ -75,77 +75,79 @@ def compute_features(chain_filepath_base, vertices, names, regular_mesh, verbose
     vertex_charges = computeAPBS(regular_mesh.vertices, chain_filepath_base + '.pdb', chain_filepath_base) if masif_opts['use_apbs'] else None
     return vertex_hbond, vertex_hphobicity, vertex_charges
 
-def filter_noise(iface_v, mesh, noise_patch_size=-50, verbose=True):
-    """
-    Filter small false-positive ground truth iface vertices which were marked due to fluctuating sidechains
+### ======================== masif-specific stuff ==========================
 
-    noise_patch_size = N:
-    N > 0: delete all isolated components of the initial ground-truth which have len <= N
-    N == 0: do nothing, i.e. leave iface as it was received from the vertices(d >= d0) selection
-    N == -1: delete everything except the biggest component. If there are > 1 biggest components with the same size, then delete everything except them and say a Warning.
-    N == -2: delete everything except components with len > max(components_sizes) // 5
-    N < -2: delete everything except components with len > max(max(components_sizes) // 5, -N)
-    """
-    if(verbose):
-        print('filtering false-positives ground-truth with the noise_patch_size = ', noise_patch_size)
-    iface = np.zeros(len(mesh.vertices))
+# def filter_noise(iface_v, mesh, noise_patch_size=-50, verbose=True):
+#     """
+#     Filter small false-positive ground truth iface vertices which were marked due to fluctuating sidechains
 
-    if(noise_patch_size == 0):
-        true_iface_v = iface_v
-    else:
-        G = vertices_graph(mesh, weighted=False)
+#     noise_patch_size = N:
+#     N > 0: delete all isolated components of the initial ground-truth which have len <= N
+#     N == 0: do nothing, i.e. leave iface as it was received from the vertices(d >= d0) selection
+#     N == -1: delete everything except the biggest component. If there are > 1 biggest components with the same size, then delete everything except them and say a Warning.
+#     N == -2: delete everything except components with len > max(components_sizes) // 5
+#     N < -2: delete everything except components with len > max(max(components_sizes) // 5, -N)
+#     """
+#     if(verbose):
+#         print('filtering false-positives ground-truth with the noise_patch_size = ', noise_patch_size)
+#     iface = np.zeros(len(mesh.vertices))
 
-        N_verts = len(mesh.vertices)
-        not_iface_v = []
-        for v in range(N_verts):
-            if(not v in iface_v):
-                not_iface_v.append(v)
-        not_iface_v = np.array(not_iface_v)
+#     if(noise_patch_size == 0):
+#         true_iface_v = iface_v
+#     else:
+#         G = vertices_graph(mesh, weighted=False)
 
-        G.remove_nodes_from(not_iface_v)
+#         N_verts = len(mesh.vertices)
+#         not_iface_v = []
+#         for v in range(N_verts):
+#             if(not v in iface_v):
+#                 not_iface_v.append(v)
+#         not_iface_v = np.array(not_iface_v)
 
-        iface_components = [np.array(list(c)) for c in nx.connected_components(G)]
-        iface_components_N = len(iface_components)
-        components_sizes = [len(c) for c in iface_components]
-        true_iface_components = []
-        if(noise_patch_size == -1):
-            max_component_ind = np.argmax(components_sizes)
-            max_size = components_sizes[max_component_ind]
-            true_iface_components.append(iface_components[max_component_ind])
-            for i in range(max_component_ind + 1, iface_components_N):
-                if(components_sizes[i] == max_size):
-                    true_iface_components.append(iface_components[i])
-            N_big_components = len(true_iface_components)
+#         G.remove_nodes_from(not_iface_v)
 
-            if(N_big_components > 1):
-                print('Warning:\niface components ' + str(true_iface_components) + ' (' + str(N_big_components) + ' items) have the same size = ' + str(max_size) + ' and they all are the biggest ones. Using their union as a ground truth.')
+#         iface_components = [np.array(list(c)) for c in nx.connected_components(G)]
+#         iface_components_N = len(iface_components)
+#         components_sizes = [len(c) for c in iface_components]
+#         true_iface_components = []
+#         if(noise_patch_size == -1):
+#             max_component_ind = np.argmax(components_sizes)
+#             max_size = components_sizes[max_component_ind]
+#             true_iface_components.append(iface_components[max_component_ind])
+#             for i in range(max_component_ind + 1, iface_components_N):
+#                 if(components_sizes[i] == max_size):
+#                     true_iface_components.append(iface_components[i])
+#             N_big_components = len(true_iface_components)
 
-        else:
-            if(noise_patch_size == -2):
-                noise_patch_size = max(components_sizes) // 5
-            elif(noise_patch_size < -2):
-                noise_patch_size = max(max(components_sizes) // 5, -noise_patch_size)
+#             if(N_big_components > 1):
+#                 print('Warning:\niface components ' + str(true_iface_components) + ' (' + str(N_big_components) + ' items) have the same size = ' + str(max_size) + ' and they all are the biggest ones. Using their union as a ground truth.')
 
-            for i, G_c in enumerate(iface_components):
-                if(components_sizes[i] > noise_patch_size):
-                    true_iface_components.append(G_c)
+#         else:
+#             if(noise_patch_size == -2):
+#                 noise_patch_size = max(components_sizes) // 5
+#             elif(noise_patch_size < -2):
+#                 noise_patch_size = max(max(components_sizes) // 5, -noise_patch_size)
 
-        true_iface_v = np.concatenate(true_iface_components)
+#             for i, G_c in enumerate(iface_components):
+#                 if(components_sizes[i] > noise_patch_size):
+#                     true_iface_components.append(G_c)
 
-    iface[true_iface_v] = 1.0
-    return iface
+#         true_iface_v = np.concatenate(true_iface_components)
 
-def find_iface(C_mesh, u_mesh, ground_truth_cut_dist, verbose=True):
-    if(verbose):
-        print('determining iface for the iface_d_cut = ', ground_truth_cut_dist)
-    # Find the vertices that are in the iface.
-    # Find the distance between every vertex in u_regular_mesh.vertices and those in the full complex.
-    kdt = KDTree(C_mesh.vertices)
-    d, r = kdt.query(u_mesh.vertices)
-    d = np.square(d) # Square d, because this is how it was in the pyflann version.
-    assert(len(d) == len(u_mesh.vertices))
-    iface_v = np.where(d >= ground_truth_cut_dist)[0]
+#     iface[true_iface_v] = 1.0
+#     return iface
 
-    iface = filter_noise(iface_v, u_mesh, noise_patch_size=-1)
+# def find_iface(C_mesh, u_mesh, ground_truth_cut_dist, verbose=True):
+#     if(verbose):
+#         print('determining iface for the iface_d_cut = ', ground_truth_cut_dist)
+#     # Find the vertices that are in the iface.
+#     # Find the distance between every vertex in u_regular_mesh.vertices and those in the full complex.
+#     kdt = KDTree(C_mesh.vertices)
+#     d, r = kdt.query(u_mesh.vertices)
+#     d = np.square(d) # Square d, because this is how it was in the pyflann version.
+#     assert(len(d) == len(u_mesh.vertices))
+#     iface_v = np.where(d >= ground_truth_cut_dist)[0]
 
-    return iface
+#     iface = filter_noise(iface_v, u_mesh, noise_patch_size=-1)
+
+#     return iface
