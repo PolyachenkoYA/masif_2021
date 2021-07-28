@@ -4,7 +4,8 @@ pip install StrBioInfo;
 
 #conda install -c bioconda msms; conda install biopython; conda install -c open3d-admin open3d==0.5; conda install tensorflow==1.9; conda install dask=2.2.0; conda install -c conda-forge pymesh2; conda install -c ostrokach-forge reduce; conda install -c schrodinger pdb2pqr==2.1.1; conda install -c schrodinger pymol # this works but it's many-command
 
-conda install -c bioconda -c open3d-admin -c conda-forge -c ostrokach-forge -c schrodinger msms biopython networkx sphinx scikit-learn scikit-learn-intelex apbs open3d=0.5 tensorflow=1.9 dask=2.2.0 pymesh2 reduce pdb2pqr=2.1.1 pymol matplotlib trimesh shapely mdtraj (works)
+#conda install -c bioconda -c open3d-admin -c conda-forge -c ostrokach-forge -c schrodinger msms biopython networkx sphinx scikit-learn scikit-learn-intelex apbs open3d=0.5 tensorflow=1.9 dask=2.2.0 pymesh2 reduce pdb2pqr=2.1.1 pymol matplotlib trimesh shapely mdtraj (works)
+conda install -c bioconda -c open3d-admin -c conda-forge -c ostrokach-forge -c schrodinger msms biopython networkx sphinx scikit-learn scikit-learn-intelex apbs open3d=0.5 tensorflow=1.9 dask=2.2.0 pymesh2 reduce pdb2pqr=2.1.1 pymol matplotlib trimesh shapely mdtraj tqdm (works?)
 
 # install APBS:
 # 1) download https://github.com/Electrostatics/apbs/releases/download/v3.0.0/APBS-3.0.0_Linux.zip (or a later version)
