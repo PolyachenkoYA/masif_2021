@@ -149,15 +149,13 @@ def get_R_cor(vertices, center_coords, vertices_features, section_features, N_R=
 
 	return R_cor, R_arr
 
-def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_interp_scale=5, chain_vec_avg=1, \
+def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_centers=200, chain_vec_avg=1, \
 					 to_recompute=False, to_save_ply=False, to_draw_centers=False, \
 					 to_draw_atoms=False, to_draw_vertices=False,  to_plot_features=False, \
 					 id_sections_to_draw=None, to_draw_2D_sections=False, to_plot_normalized_features=False, \
 					 to_plot_Rcor=False):
 	### ===================== hardcode params =========================
 	center_coords_names = ['CA centers', 'center-of-mass positions', 'backbone']
-	N_interp_scale = 5
-
 	features_names = ['charge', '$H_{bond}$', '$H_{phob}$', '$S$ ($nm^2$)', '$S_{conv}$ ($nm^2$)', '$S_{conv} / S$']
 	N_feat = len(features_names)
 	chain_vec_avg = 1   # average 2n+1 heighbour chain elements to get a normal for sections
@@ -167,7 +165,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_inter
 	ply_filepath = pdb_filepath_base + '.ply'
 	features_filepath = pdb_filepath_base + '_'.join(['_features', \
 													 'R' + str(Ravg), \
-													 'Ninterp' + str(N_interp_scale), \
+													 'Ninterp' + str(N_centers), \
 													 'chainAvg' + str(chain_vec_avg), \
 													 'mode' + str(main_mode)]) + '.npy'
 
@@ -184,7 +182,6 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_inter
 					np.mean(molecule.xyz[0, molecule.topology.select('resid == ' + str(res_i)), :], axis=0)   # center of mass coords
 	elif(main_mode == 2):
 			center_coords_residues = molecule.xyz[0, molecule.topology.select('backbone'), :]   # backbone_coords
-	N_centers = N_resd * N_interp_scale
 	center_coords, center_resd_indices, chain_vectors = \
 		interpolate_3Dpoints(center_coords_residues, N_centers)
 
@@ -346,14 +343,14 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_inter
 		residue_index_x = (np.arange(N_centers) + 1) * (N_resd / N_centers)
 		residue_index_x = np.arange(N_centers)
 		for f_i in range(N_feat):
-			fig_feat, ax_feat = my.get_fig('center # ~ (residue #)x' + str(N_interp_scale), features_names[f_i], title=features_names[f_i])
+			fig_feat, ax_feat = my.get_fig('center # ~ (residue #)x' + my.f2s(N_centers / N_resd), features_names[f_i], title=features_names[f_i])
 			ax_feat.plot(residue_index_x, lin_features[:, f_i], '-o', markersize=2)
 			#fig_feat.legend()
 
 	if(to_draw_anything):
 		plt.show()
 
-	return lin_features, [R_cor, R_arr]
+	return lin_features, [R_cor, R_arr], features_names
 
 ### ======================== masif-specific stuff ==========================
 
