@@ -67,12 +67,12 @@ def parse_names(arg, tmp_dir=None, git_root=my.git_root_path(), verbose=True):
     chain_filepath = chain_filepath_base + '.pdb'
     return pdb_name, chain_name, pdb_filepath, chain_filepath_base, chain_filepath
 
-def msms_wrap(chain_filepath, verbose=True):
+def msms_wrap(chain_filepath, mesh_res=1.0, verbose=True):
     if(verbose):
-        print('performing MSMS on', chain_filepath)
+        print('performing MSMS on', chain_filepath, '; resolution = ', mesh_res)
     vertices, faces, normals, names, areas = computeMSMS(chain_filepath, have_xyzrn=True)
     mesh = pymesh.form_mesh(vertices, faces)
-    regular_mesh = fix_mesh(mesh, masif_opts['mesh_res'])
+    regular_mesh = fix_mesh(mesh, mesh_res)
     vertex_normals = compute_normal(regular_mesh.vertices, regular_mesh.faces)
     return regular_mesh, vertex_normals, vertices, names
 
@@ -187,7 +187,14 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 		interpolate_3Dpoints(center_coords_residues, N_centers)
 
 	### ==================== construct the mesh.===================
-	regular_mesh, vertex_normals, vertices, names = msms_wrap(pdb_filepath)
+	mesh_res = 1.0
+	while(True):
+		regular_mesh, vertex_normals, vertices, names = msms_wrap(pdb_filepath, mesh_res=mesh_res)
+		regular_trimesh = trimesh.Trimesh(vertices = regular_mesh.vertices / 10, faces=regular_mesh.faces)
+		if(regular_trimesh.is_watertight):
+			break
+		else:
+			mesh_res = mesh_res / 1.2
 
 	### ================== comp surface features ======================
 	to_draw_sections = (id_sections_to_draw is not None)
@@ -220,13 +227,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 		main_subsections_ids = - np.ones(N_centers, dtype=int)
 		center_crds_2D = np.zeros((2, N_centers))
 		sections_to_3D = np.zeros((N_centers, 4, 4))
-		regular_trimesh = trimesh.Trimesh(vertices=vertices, faces=regular_mesh.faces)
-		if(not regular_trimesh.is_watertight):
-			print('ERROR: not watertight surface mesh')
 		cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
-		#print('pymesh: ', regular_mesh.faces.shape)
-		#print('trimesh: ', regular_trimesh.faces.shape)
-		#print('cutmesh: ', cut_mesh.tris.shape)
 		section_normals = np.zeros((3, N_centers))
 		for cent_i in range(N_centers):
 			chain_vectors_to_average = chain_vectors[max(center_resd_indices[cent_i] - 1 - chain_vec_avg, 0) : \
