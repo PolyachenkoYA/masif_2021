@@ -213,11 +213,11 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 			pymesh.save_mesh(ply_filepath, mesh, *mesh.get_attribute_names(), use_float=True, ascii=True)
 
 		### ================== comp section features ======================
-		#main_sections_areas = np.zeros(N_centers)
-		#main_sections_convex_areas = np.zeros(N_centers)
-		#sections_3D = []
-		#sections_2D = []
-		#main_subsections_ids = - np.ones(N_centers, dtype=int)
+		main_sections_areas = np.zeros(N_centers)
+		main_sections_convex_areas = np.zeros(N_centers)
+		sections_3D = []
+		sections_2D = []
+		main_subsections_ids = - np.ones(N_centers, dtype=int)
 		center_crds_2D = np.zeros((2, N_centers))
 		sections_to_3D = np.zeros((N_centers, 4, 4))
 		regular_trimesh = trimesh.Trimesh(vertices=vertices, faces=regular_mesh.faces)
@@ -233,39 +233,39 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 								                     min(center_resd_indices[cent_i] - 1 + chain_vec_avg, chain_vectors.shape[0] - 1), :]
 			#section_normals[:, cent_i] = np.main(chain_vectors_to_average / np.linalg.norm(chain_vectors_to_average, axis=), axis=0)
 			section_normals[:, cent_i] = np.sum(chain_vectors_to_average, axis=0)
-# 			section = meshcut.cross_section_mesh(cut_mesh, meshcut.Plane(center_coords[cent_i, :], \
-# 												                         section_normals[:, cent_i]))   # trimesh does not separate closed subsections, this does, tho it works much slover
+			section = meshcut.cross_section_mesh(cut_mesh, meshcut.Plane(center_coords[cent_i, :], \
+												                         section_normals[:, cent_i]))   # trimesh does not separate closed subsections, this does, tho it works much slover
 			_, sections_to_3D[cent_i, :, :] = \
 				regular_trimesh.section(plane_origin=center_coords[cent_i, :], \
 								        plane_normal=section_normals[:, cent_i]).to_planar(check=False)
 
 			center_crds_2D[:, cent_i] = np.linalg.solve(sections_to_3D[cent_i, :, :], \
 												         np.append(center_coords[cent_i, :], 1).T)[0:2]
-# 			sections_2D.append([])
-# 			for subsection_id in range(len(section)):
-# 				section[subsection_id] = section[subsection_id].T
-# 				subsection_coord_augmented = np.concatenate((section[subsection_id], \
-# 												             np.ones((1, section[subsection_id].shape[1]))), axis=0)
-# 				subsection_2Dcoord = np.linalg.solve(sections_to_3D[cent_i, :, :], \
-# 										             subsection_coord_augmented)[0:2, :]
-# 				sections_2D[-1].append(subsection_2Dcoord)
+			sections_2D.append([])
+			for subsection_id in range(len(section)):
+				section[subsection_id] = section[subsection_id].T
+				subsection_coord_augmented = np.concatenate((section[subsection_id], \
+												             np.ones((1, section[subsection_id].shape[1]))), axis=0)
+				subsection_2Dcoord = np.linalg.solve(sections_to_3D[cent_i, :, :], \
+										             subsection_coord_augmented)[0:2, :]
+				sections_2D[-1].append(subsection_2Dcoord)
 
-# 				subsection_polygon = shapely.geometry.asPolygon(subsection_2Dcoord.T)
-# 				if(subsection_polygon.contains(shapely.geometry.asPoint(center_crds_2D[:, cent_i]))):
-# 					if(main_subsections_ids[cent_i] < 0):
-# 						main_subsections_ids[cent_i] = subsection_id
-# 						main_sections_areas[cent_i] = subsection_polygon.area
-# 						main_sections_convex_areas[cent_i] = subsection_polygon.convex_hull.area
-# 					else:
-# 						print('ERROR: 2 polygons containing the center point were found. Aborting.')
-# 						sys.exit(1)
-# 			sections_3D.append(section)
+				subsection_polygon = shapely.geometry.asPolygon(subsection_2Dcoord.T)
+				if(subsection_polygon.contains(shapely.geometry.asPoint(center_crds_2D[:, cent_i]))):
+					if(main_subsections_ids[cent_i] < 0):
+						main_subsections_ids[cent_i] = subsection_id
+						main_sections_areas[cent_i] = subsection_polygon.area
+						main_sections_convex_areas[cent_i] = subsection_polygon.convex_hull.area
+					else:
+						print('ERROR: 2 polygons containing the center point were found. Aborting.')
+						sys.exit(1)
+			sections_3D.append(section)
 
 			print('sections comp: ' + my.f2s((cent_i + 1) / N_centers * 100) + ' %               \r', end='')
 
-# 		section_features = np.concatenate((main_sections_areas[:, np.newaxis], \
-# 										   main_sections_convex_areas[:, np.newaxis], \
-# 										   (main_sections_convex_areas / main_sections_areas)[:, np.newaxis]), axis=1)
+		section_features = np.concatenate((main_sections_areas[:, np.newaxis], \
+										   main_sections_convex_areas[:, np.newaxis], \
+										   (main_sections_convex_areas / main_sections_areas)[:, np.newaxis]), axis=1)
 
 		### ================== join all features ======================
 		#lin_features = np.concatenate((lin_vertices_feautures, section_features), axis=1)
@@ -281,8 +281,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 
 	### =================== get correlations ===========================
 	if(to_comp_cor):
-		pass
-		#R_cor, R_arr = get_R_cor(vertices, center_coords, vertices_features, section_features)
+		R_cor, R_arr = get_R_cor(vertices, center_coords, vertices_features, section_features)
 	else:
 		R_cor = None
 		R_arr = None
@@ -301,18 +300,17 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 						            triangles=regular_trimesh.faces, alpha=0.1)
 
 			#surfaces_to_mark = [1483, 1484, 1578, 1579]
-			surfaces_to_mark = [1485, 1486, 1580, 1581]
-			colors_m = ['red', 'green', 'blue', 'black']
+			#surfaces_to_mark = [1485, 1486, 1580, 1581]
+			#colors_m = ['red', 'green', 'blue', 'black']
 # 			print(regular_trimesh.faces[surfaces_to_mark].shape)
 # 			print(regular_trimesh.faces[np.newaxis, surfaces_to_mark[0]].shape)
 # 			surf = ax_protein.plot_trisurf(regular_trimesh.vertices[:, 0], regular_trimesh.vertices[:, 1], regular_trimesh.vertices[:, 2], \
 # 							        triangles=regular_trimesh.faces[surfaces_to_mark], alpha=1.0, color='blue')
-
-			for i_s, s in enumerate(surfaces_to_mark):
-				surf = ax_protein.plot_trisurf(regular_trimesh.vertices[:, 0], regular_trimesh.vertices[:, 1], regular_trimesh.vertices[:, 2], \
-								        triangles=regular_trimesh.faces[np.newaxis, s], color=colors_m[i_s], label=str(regular_trimesh.faces[s]))
-				surf._facecolors2d = surf._facecolor3d
-				surf._edgecolors2d = surf._edgecolor3d
+# 			for i_s, s in enumerate(surfaces_to_mark):
+# 				surf = ax_protein.plot_trisurf(regular_trimesh.vertices[:, 0], regular_trimesh.vertices[:, 1], regular_trimesh.vertices[:, 2], \
+# 								        triangles=regular_trimesh.faces[np.newaxis, s], color=colors_m[i_s], label=str(regular_trimesh.faces[s]))
+# 				surf._facecolors2d = surf._facecolor3d
+# 				surf._edgecolors2d = surf._edgecolor3d
 
 		if(to_draw_sections):
 			for section_id_i in range(len(id_sections_to_draw)):
@@ -326,16 +324,16 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 					ax_section.scatter(center_crds_2D[0, section_id], center_crds_2D[1, section_id], marker='+', \
 						               color='red', label='chain')
 
-# 				for subsection_id in range(len(sections_3D[section_id])):
-# 					subsection = sections_3D[section_id][subsection_id]
-# 					ax_protein.plot(subsection[0, :], subsection[1, :], subsection[2, :], \
-# 					               '+', markersize=4, label=(section_title if subsection_id == 0 else None), color=my.colors[section_id_i])
+				for subsection_id in range(len(sections_3D[section_id])):
+					subsection = sections_3D[section_id][subsection_id]
+					ax_protein.plot(subsection[0, :], subsection[1, :], subsection[2, :], \
+					               '+', markersize=4, label=(section_title if subsection_id == 0 else None), color=my.colors[section_id_i])
 
-# 					if(to_draw_2D_sections):
-# 						ax_section.plot(sections_2D[section_id][subsection_id][0, :], sections_2D[section_id][subsection_id][1, :], \
-# 					                    '.-', markersize=2, label='subsec ' + str(subsection_id) + \
-# 											(('; $S_{conv}$ = ' + my.f2s(main_sections_convex_areas[section_id]) + ' $nm^2$') \
-# 								             if subsection_id == main_subsections_ids[section_id] else ''))
+					if(to_draw_2D_sections):
+						ax_section.plot(sections_2D[section_id][subsection_id][0, :], sections_2D[section_id][subsection_id][1, :], \
+					                    '.-', markersize=2, label='subsec ' + str(subsection_id) + \
+											(('; $S_{conv}$ = ' + my.f2s(main_sections_convex_areas[section_id]) + ' $nm^2$') \
+								             if subsection_id == main_subsections_ids[section_id] else ''))
 
 				if(to_draw_2D_sections):
 					fig_section.legend()
