@@ -1,0 +1,40 @@
+conda create --name masif36 python=3.6; conda activate masif36;
+
+pip install StrBioInfo;
+
+#conda install -c bioconda msms; conda install biopython; conda install -c open3d-admin open3d==0.5; conda install tensorflow==1.9; conda install dask=2.2.0; conda install -c conda-forge pymesh2; conda install -c ostrokach-forge reduce; conda install -c schrodinger pdb2pqr==2.1.1; conda install -c schrodinger pymol # this works but it's many-command
+
+#conda install -c bioconda -c open3d-admin -c conda-forge -c ostrokach-forge -c schrodinger msms biopython networkx sphinx scikit-learn scikit-learn-intelex apbs open3d=0.5 tensorflow=1.9 dask=2.2.0 pymesh2 reduce pdb2pqr=2.1.1 pymol matplotlib trimesh shapely mdtraj (works)
+conda install -c bioconda -c open3d-admin -c conda-forge -c ostrokach-forge -c schrodinger msms biopython networkx sphinx scikit-learn scikit-learn-intelex apbs open3d=0.5 tensorflow=1.9 dask=2.2.0 pymesh2 reduce pdb2pqr=2.1.1 pymol matplotlib trimesh shapely mdtraj tqdm (works?)
+
+# install APBS:
+# 1) download https://github.com/Electrostatics/apbs/releases/download/v3.0.0/APBS-3.0.0_Linux.zip (or a later version)
+# 2) unpack
+https://github.com/Electrostatics/apbs/releases
+
+# ================ for ~/.bashrc: ==============
+export PATH=$PATH:$HOME/anaconda3/pkgs/reduce-3.16.111118-0
+
+#export APBS_BIN=$HOME/anaconda3/envs/masif36/bin/apbs
+export APBS_BIN=$HOME/APBS-3.0.0.Linux/bin/apbs
+
+export MULTIVALUE_BIN=$HOME/APBS-3.0.0.Linux/share/apbs/tools/bin/multivalue
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/APBS-3.0.0.Linux/lib
+
+export PDB2PQR_BIN=$HOME/anaconda3/envs/masif36/bin/pdb2pqr
+
+export REDUCE_HET_DICT=$HOME/anaconda3/pkgs/reduce-3.16.111118-0/dat/reduce_wwPDB_het_dict.txt
+
+export PYMESH_PATH=$HOME/anaconda3/pkgs/pymesh2-0.2.1-py36_0
+
+#export MSMS_BIN=$HOME/anaconda3/pkgs/msms-2.6.1-h9ee0642_3/bin/msms
+export MSMS_BIN=$HOME/APBS-3.0.0.Linux/bin/msms
+
+#export PDB2XYZRN=$HOME/anaconda3/pkgs/msms-2.6.1-h9ee0642_3/bin/pdb_to_xyzrn
+export PDB2XYZRN=$HOME/anaconda3/envs/masif36/bin/pdb_to_xyzrn
+# ================================================
+
+# if necessary:
+# ln -s libreadline.so libreadline.so.7
+
