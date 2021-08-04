@@ -298,11 +298,21 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 			      label='A:' + center_coords_names[main_mode], s=1)
 		if(to_draw_vertices):
 			ax_protein.plot_trisurf(regular_trimesh.vertices[:,0], regular_trimesh.vertices[:,1], regular_trimesh.vertices[:,2], \
-						            triangles=regular_trimesh.faces, alpha=0.5)
+						            triangles=regular_trimesh.faces, alpha=0.1)
 
-			surfaces_to_mark = [1483, 1484, 1578, 1579]
-			ax_protein.plot_trisurf(regular_trimesh.vertices[:, 0], regular_trimesh.vertices[:, 1], regular_trimesh.vertices[:, 2], \
- 							        triangles=regular_trimesh.faces[surfaces_to_mark], alpha=1.0, color='blue')
+			#surfaces_to_mark = [1483, 1484, 1578, 1579]
+			surfaces_to_mark = [1485, 1486, 1580, 1581]
+			colors_m = ['red', 'green', 'blue', 'black']
+# 			print(regular_trimesh.faces[surfaces_to_mark].shape)
+# 			print(regular_trimesh.faces[np.newaxis, surfaces_to_mark[0]].shape)
+# 			surf = ax_protein.plot_trisurf(regular_trimesh.vertices[:, 0], regular_trimesh.vertices[:, 1], regular_trimesh.vertices[:, 2], \
+# 							        triangles=regular_trimesh.faces[surfaces_to_mark], alpha=1.0, color='blue')
+
+			for i_s, s in enumerate(surfaces_to_mark):
+				surf = ax_protein.plot_trisurf(regular_trimesh.vertices[:, 0], regular_trimesh.vertices[:, 1], regular_trimesh.vertices[:, 2], \
+								        triangles=regular_trimesh.faces[np.newaxis, s], color=colors_m[i_s], label=str(regular_trimesh.faces[s]))
+				surf._facecolors2d = surf._facecolor3d
+				surf._edgecolors2d = surf._edgecolor3d
 
 		if(to_draw_sections):
 			for section_id_i in range(len(id_sections_to_draw)):
