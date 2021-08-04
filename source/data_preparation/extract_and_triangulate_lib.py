@@ -76,14 +76,14 @@ def msms_wrap(chain_filepath, mesh_res=1.0, verbose=True):
     vertex_normals = compute_normal(regular_mesh.vertices, regular_mesh.faces)
     return regular_mesh, vertex_normals, vertices, names
 
-def compute_surface_features(chain_filepath_base, vertices, names, regular_mesh, verbose=True):
+def compute_surface_features(chain_filepath_base, vertices, names, regular_vertices, verbose=True):
     if(verbose):
         print('computing features for "', chain_filepath_base, '"')
     vertex_hbond = computeCharges(chain_filepath_base, vertices, names) if masif_opts['use_hbond'] else None
     vertex_hphobicity = computeHydrophobicity(names) if masif_opts['use_hphob'] else None
-    vertex_hbond = assignChargesToNewMesh(regular_mesh.vertices, vertices, vertex_hbond, masif_opts) if masif_opts['use_hbond'] else None
-    vertex_hphobicity = assignChargesToNewMesh(regular_mesh.vertices, vertices, vertex_hphobicity, masif_opts) if masif_opts['use_hphob'] else None
-    vertex_charges = computeAPBS(regular_mesh.vertices, chain_filepath_base + '.pdb', chain_filepath_base) if masif_opts['use_apbs'] else None
+    vertex_hbond = assignChargesToNewMesh(regular_vertices, vertices, vertex_hbond, masif_opts) if masif_opts['use_hbond'] else None
+    vertex_hphobicity = assignChargesToNewMesh(regular_vertices, vertices, vertex_hphobicity, masif_opts) if masif_opts['use_hphob'] else None
+    vertex_charges = computeAPBS(regular_vertices, chain_filepath_base + '.pdb', chain_filepath_base) if masif_opts['use_apbs'] else None
     return vertex_hbond, vertex_hphobicity, vertex_charges
 
 def interpolate_3Dpoints(crds, N):
@@ -189,9 +189,9 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 
 	### ==================== construct the mesh.===================
 	mesh_res = 1.0
-	mesh_res_min = 0.3
-	mesh_res_step = 1.1
-	mesh_res_step_rough = 0.9
+	mesh_res_min = 0.5
+	mesh_res_max = 2.0
+	mesh_res_step = 0.95
 	while(True):
 		regular_mesh, vertex_normals, vertices, names = msms_wrap(pdb_filepath, \
 																  mesh_res=mesh_res)
@@ -201,8 +201,14 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 		else:
 			if(mesh_res < mesh_res_min):
 				mesh_res = 1.0
-				mesh_res_step = mesh_res_step_rough
-			mesh_res = mesh_res / mesh_res_step
+				mesh_res_step = 1 / mesh_res_step
+			if(mesh_res > mesh_res_max):
+				break
+			mesh_res = mesh_res * mesh_res_step
+	if(not regular_trimesh.is_watertight):
+		print('could not find a proper mesh resolution. Doing a convex hull')
+		regular_trimesh = regular_trimesh.convex_hull
+
 
 	### ================== comp surface features ======================
 	to_draw_sections = (id_sections_to_draw is not None)
@@ -211,19 +217,20 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 
 	if(to_recompute or (not os.path.isfile(features_filepath)) or to_draw_anything):
 		vertex_hbond, vertex_hphobicity, vertex_charges = \
-				compute_surface_features(pdb_filepath_base, vertices, names, regular_mesh)
-		vertices = regular_mesh.vertices / 10   # looks like MaSIF pipeline works in (A) but not in (nm)
+				compute_surface_features(pdb_filepath_base, vertices, names, regular_trimesh.vertices * 10)
+		#vertices = regular_mesh.vertices / 10   # looks like MaSIF pipeline works in (A) but not in (nm)
+		vertices = regular_trimesh.vertices
 
 		vertices_features = np.concatenate((vertex_charges[np.newaxis, :], \
 										    vertex_hbond[np.newaxis, :], \
 											vertex_hphobicity[np.newaxis, :]))
 
-		lin_vertices_feautures = get_lin_features_from_vertices(vertices, center_coords, vertices_features, Ravg)
+		lin_vertices_feautures = get_lin_features_from_vertices(regular_trimesh.vertices, center_coords, vertices_features, Ravg)
 
 		### ======================== save surface ===========================
 		if(to_save_ply):
-			mesh = make_mesh(regular_mesh.vertices,\
-							  regular_mesh.faces, normals=vertex_normals, charges=vertex_charges,\
+			mesh = make_mesh(regular_trimesh.vertices * 10,\
+							  regular_trimesh.faces, normals=vertex_normals, charges=vertex_charges,\
 							  normalize_charges=True, hbond=vertex_hbond, hphob=vertex_hphobicity)
 			pymesh.save_mesh(ply_filepath, mesh, *mesh.get_attribute_names(), use_float=True, ascii=True)
 
@@ -235,7 +242,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 			center_crds_2D = np.zeros((2, N_centers))
 			sections_to_3D = np.zeros((N_centers, 4, 4))
 			section_normals = np.zeros((3, N_centers))
-			cut_mesh = meshcut.TriangleMesh(vertices, regular_mesh.faces)
+			cut_mesh = meshcut.TriangleMesh(regular_trimesh.vertices, regular_trimesh.faces)
 			main_subsections_ids = - np.ones(N_centers, dtype=int)
 			sections_3D = []
 			sections_2D = []
