@@ -73,8 +73,7 @@ def msms_wrap(chain_filepath, mesh_res=1.0, verbose=True):
     vertices, faces, normals, names, areas = computeMSMS(chain_filepath, have_xyzrn=True)
     mesh = pymesh.form_mesh(vertices, faces)
     regular_mesh = fix_mesh(mesh, mesh_res)
-    vertex_normals = compute_normal(regular_mesh.vertices, regular_mesh.faces)
-    return regular_mesh, vertex_normals, vertices, names
+    return regular_mesh, vertices, names
 
 def compute_surface_features(chain_filepath_base, vertices, names, regular_vertices, verbose=True):
     if(verbose):
@@ -191,9 +190,9 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 	mesh_res = 1.0
 	mesh_res_min = 0.5
 	mesh_res_max = 2.0
-	mesh_res_step = 0.95
+	mesh_res_step = 0.99
 	while(True):
-		regular_mesh, vertex_normals, vertices, names = msms_wrap(pdb_filepath, \
+		regular_mesh, vertices, names = msms_wrap(pdb_filepath, \
 																  mesh_res=mesh_res)
 		regular_trimesh = trimesh.Trimesh(vertices=regular_mesh.vertices/10, faces=regular_mesh.faces)   # looks like MaSIF pipeline works in (A) but not in (nm)
 		if(regular_trimesh.is_watertight):
@@ -208,7 +207,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 	if(not regular_trimesh.is_watertight):
 		print('could not find a proper mesh resolution. Doing a convex hull')
 		regular_trimesh = regular_trimesh.convex_hull
-
+	vertex_normals = compute_normal(regular_trimesh.vertices, regular_trimesh.faces)
 
 	### ================== comp surface features ======================
 	to_draw_sections = (id_sections_to_draw is not None)
@@ -218,8 +217,6 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 	if(to_recompute or (not os.path.isfile(features_filepath)) or to_draw_anything):
 		vertex_hbond, vertex_hphobicity, vertex_charges = \
 				compute_surface_features(pdb_filepath_base, vertices, names, regular_trimesh.vertices * 10)
-		#vertices = regular_mesh.vertices / 10   # looks like MaSIF pipeline works in (A) but not in (nm)
-		vertices = regular_trimesh.vertices
 
 		vertices_features = np.concatenate((vertex_charges[np.newaxis, :], \
 										    vertex_hbond[np.newaxis, :], \
@@ -302,8 +299,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 
 	### =================== get correlations ===========================
 	if(to_comp_cor):
-		pass
-		#R_cor, R_arr = get_R_cor(vertices, center_coords, vertices_features, section_features)
+		R_cor, R_arr = get_R_cor(regular_trimesh.vertices, center_coords, vertices_features, section_features)
 	else:
 		R_cor = None
 		R_arr = None
@@ -313,10 +309,10 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, main_mode=0, N_cente
 		fig_protein, ax_protein = my.get_fig('x (nm)', 'y (nm)', title='3D polymer', projection='3d', zlbl='z (nm)')
 		if(to_draw_centers):
 	 		ax_protein.plot3D(center_coords[:, 0], center_coords[:, 1], center_coords[:, 2], \
-		                      label='C:' + center_coords_names[main_mode])
+		                      label='Centers: ' + center_coords_names[main_mode])
 		if(to_draw_atoms):
 			ax_protein.scatter3D(molecule.xyz[0, :, 0], molecule.xyz[0, :, 1], molecule.xyz[0, :, 2], \
-			      label='A:' + center_coords_names[main_mode], s=1)
+			      label='Atoms: ' + center_coords_names[main_mode], s=1)
 		if(to_draw_vertices):
 			ax_protein.plot_trisurf(regular_trimesh.vertices[:,0], regular_trimesh.vertices[:,1], regular_trimesh.vertices[:,2], \
 						            triangles=regular_trimesh.faces, alpha=0.1)
