@@ -21,7 +21,6 @@ import re
 import mdtraj as md
 
 # Local includes
-from default_config.masif_opts import masif_opts
 #from input_output.extractPDB import extractPDB
 #from input_output.save_ply import save_ply
 #from input_output.read_ply import read_ply
@@ -33,9 +32,7 @@ from triangulation.computeHydrophobicity import computeHydrophobicity
 from triangulation.computeCharges import computeCharges, assignChargesToNewMesh
 from triangulation.computeAPBS import computeAPBS
 from triangulation.compute_normal import compute_normal
-import triangulation.meshcut as meshcut
 from  triangulation.make_surface import make_mesh
-
 
 # my includes
 #import my_utils as my
@@ -180,6 +177,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 					 to_recompute=None, to_save_ply=False, to_draw_centers=False, \
 					 to_draw_atoms=False, to_draw_vertices=False,  to_plot_features=False, \
 					 id_sections_to_draw=None, to_draw_2D_sections=False, to_plot_normalized_features=False, \
+					 to_draw_inert_sections=False, to_draw_chain_sections=False, \
 					 to_plot_Rcor=False, cleanup_mode=0):
 
 	### ======================== paths ==================================
@@ -189,7 +187,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 						   for fn in features_names]
 
 	to_draw_sections = (id_sections_to_draw is not None)
-	to_draw_protein = to_draw_centers or to_draw_atoms or to_draw_vertices or to_draw_sections
+	to_draw_protein = to_draw_centers or to_draw_atoms or to_draw_vertices or (id_sections_to_draw is not None)
 	to_draw_anything = to_draw_protein or to_plot_Rcor or to_plot_normalized_features or to_plot_features
 	if(to_recompute is None):
 		to_recompute = np.array([False] * (N_feat + 1))
@@ -284,44 +282,25 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 	   np.any([not os.path.isfile(features_filepaths[i_sf]) for i_sf in section_features_inds])):
 		main_sections_areas = np.zeros(N_centers)
 		main_sections_convex_areas = np.zeros(N_centers)
-		sections_3D = []
-		sections_2D = []
+		sections_3D = [[]] * N_centers
+		sections_2D = [[]] * N_centers
 		main_subsections_ids = - np.ones(N_centers, dtype=int)
 		center_crds_2D = np.zeros((2, N_centers))
 		sections_to_3D = np.zeros((N_centers, 4, 4))
-		#cut_mesh = meshcut.TriangleMesh(regular_trimesh.vertices, regular_trimesh.faces)
 		section_normals = np.zeros((N_centers, 3))
 		for cent_i in range(N_centers):
 			chain_vectors_to_average = chain_vectors[max(center_resd_indices[cent_i] - 1 - chain_vec_avg, 0) : \
 								                     min(center_resd_indices[cent_i] - 1 + chain_vec_avg, chain_vectors.shape[0] - 1), :]
 			#section_normals[cent_i, :] = np.main(chain_vectors_to_average / np.linalg.norm(chain_vectors_to_average, axis=), axis=0)
 			section_normals[cent_i, :] = np.sum(chain_vectors_to_average, axis=0)
-			#section = meshcut.cross_section_mesh(cut_mesh, meshcut.Plane(center_coords[cent_i, :], \
-			#									                         section_normals[cent_i, :]))   # trimesh does not separate closed subsections, this does, tho it works much slover
 
-			section_3D = regular_trimesh.section(plane_origin=center_coords[cent_i, :], \
+			sections_3D[cent_i] = regular_trimesh.section(plane_origin=center_coords[cent_i, :], \
 								        plane_normal=section_normals[cent_i, :])
-			section_2D, sections_to_3D[cent_i, :, :] = 	section_3D.to_planar(check=False)
+			sections_2D[cent_i], sections_to_3D[cent_i, :, :] = sections_3D[cent_i].to_planar(check=False)
 
 			center_crds_2D[:, cent_i] = np.linalg.solve(sections_to_3D[cent_i, :, :], \
 												         np.append(center_coords[cent_i, :], 1).T)[0:2]
-			sections_2D.append(section_2D)
-#			print(section.polygons_closed)
-#			for subsection_id in range(len(section)):
-# 				section[subsection_id] = section[subsection_id].T
-# 				subsection_coord_augmented = np.concatenate((section[subsection_id], \
-# 												             np.ones((1, section[subsection_id].shape[1]))), axis=0)
-# 				subsection_2Dcoord = np.linalg.solve(sections_to_3D[cent_i, :, :], \
-# 										             subsection_coord_augmented)[0:2, :]
-# 				sections_2D[-1].append(subsection_2Dcoord)
-#				subsection_polygon = shapely.geometry.asPolygon(subsection_2Dcoord.T)
-			for subsection_id, subsection_polygon in enumerate(section_2D.polygons_closed):
-#				subsection_Xs, subsection_Ys = subsection_polygon.exterior.coords.xy
-				#print(type(subsection_Xs), type(np.array(subsection_Xs)), np.array(subsection_Xs).shape)
-# 				sections_2D[-1].append(np.concatenate((np.array(subsection_Xs)[np.newaxis, :], \
-# 										               np.array(subsection_Ys)[np.newaxis, :])))
-				#print(sections_2D[-1][-1])
-				#input('next')
+			for subsection_id, subsection_polygon in enumerate(sections_2D[cent_i].polygons_closed):
 				if(subsection_polygon.contains(shapely.geometry.asPoint(center_crds_2D[:, cent_i]))):
 					if(main_subsections_ids[cent_i] < 0):
 						main_subsections_ids[cent_i] = subsection_id
@@ -330,7 +309,6 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 					else:
 						print('ERROR: 2 polygons containing the center point were found. Aborting.')
 						sys.exit(1)
-			sections_3D.append(section_3D)
 
 			print('sections comp: ' + my.f2s((cent_i + 1) / N_centers * 100) + ' %               \r', end='')
 
@@ -347,27 +325,30 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 	   np.any([not os.path.isfile(features_filepaths[i_sf]) for i_sf in inertsection_features_inds])):
 		inert_section_convarea = np.zeros(N_centers)
 		inert_section_area = np.zeros(N_centers)
+		inert_sections_2D = [[]] * N_centers
+		inert_sections_3D = [[]] * N_centers
+		inert_sections_to_3D = np.zeros((N_centers, 4, 4))
 
 		inertia_tensor = md.compute_inertia_tensor(molecule)
-		liag_inert, transformation = np.linalg.eigh(inertia_tensor[0, :, :])
+		liag_inert, rot_matr_to_principal = np.linalg.eigh(inertia_tensor[0, :, :])
 
-		inv_trans = np.linalg.inv(transformation)
+		inv_trans = np.linalg.inv(rot_matr_to_principal)
 		#rotated_atom_coords = np.dot(inv_trans, molecule.xyz[0, :, :].T).T
 		rotated_vertices = np.dot(inv_trans, regular_trimesh.vertices.T).T
 		rotated_trimesh = trimesh.Trimesh(vertices=rotated_vertices, faces=regular_trimesh.faces)
-		z_min = np.min(rotated_vertices[:, 2])
-		z_max = np.max(rotated_vertices[:, 2])
+		x_min = np.min(rotated_vertices[:, 0])
+		x_max = np.max(rotated_vertices[:, 0])
 
 		for i_s in range(N_centers):
-			z_section = z_min + (z_max - z_min) * (i_s + 1) / (N_centers + 1)
-			section, to_3D = \
-				rotated_trimesh.section(plane_origin = [0, 0, z_section], \
-										plane_normal = [0, 0, 1]).to_planar(check=False)
+			x_section = x_min + (x_max - x_min) * (i_s + 1) / (N_centers + 1)
+			inert_sections_3D[i_s] = \
+				rotated_trimesh.section(plane_origin = [x_section, 0, 0], \
+										plane_normal = [1, 0, 0])
+			inert_sections_2D[i_s], inert_sections_to_3D[i_s, :, :] = \
+				inert_sections_3D[i_s].to_planar(check=False)
 
-# 			for i_p, polygon in enumerate(section.polygons_closed):
-# 				inert_section_convarea[i_s] = inert_section_convarea[i_s] + polygon.area
-			inert_section_area[i_s] = np.sum([polygon.area for polygon in section.polygons_closed])
-			inert_section_convarea[i_s] = shapely.geometry.asPolygon(section.vertices).convex_hull.area
+			inert_section_area[i_s] = np.sum([polygon.area for polygon in inert_sections_2D[i_s].polygons_closed])
+			inert_section_convarea[i_s] = shapely.geometry.asPolygon(inert_sections_2D[i_s].vertices).convex_hull.area
 
 		inert_section_features = np.concatenate((inert_section_area[np.newaxis, :], \
 											     inert_section_convarea[np.newaxis, :]))
@@ -407,30 +388,41 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 			for section_id_i in range(len(id_sections_to_draw)):
 				section_id = id_sections_to_draw[section_id_i]
 				section_title = 'section ' + str(section_id)
-				ax_protein.plot(center_coords[section_id, 0], center_coords[section_id, 1], center_coords[section_id, 2], \
-					               '.', markersize=10, color=my.colors[section_id_i], label=None)
 
-				if(to_draw_2D_sections):
-					fig_section, ax_section = my.get_fig("x'", "y'", title=section_title)
-					ax_section.scatter(center_crds_2D[0, section_id], center_crds_2D[1, section_id], marker='+', \
-						               color='red', label='chain')
-
-				print(sections_3D[section_id])
-				for subsection_id, subsection_2D in enumerate(sections_2D[section_id].polygons_closed):
-					subsection_3D = trimesh.load_path(subsection_2D).to_3D(sections_to_3D[section_id, :, :])
-					print(subsection_3D)
-					ax_protein.plot(subsection_3D.vertices[:, 0], subsection_3D.vertices[:, 1], subsection_3D.vertices[:, 2], \
-					               '+', markersize=4, label=(section_title if subsection_id == 0 else None), color=my.colors[section_id_i])
+				if(to_draw_inert_sections):
+					inert_section_title = 'inert section ' + str(section_id)
+					unrotated_inert_section = np.dot(rot_matr_to_principal, inert_sections_3D[section_id].vertices.T).T
+					ax_protein.plot(unrotated_inert_section[:, 0], unrotated_inert_section[:, 1], unrotated_inert_section[:, 2], \
+					               '+', markersize=4, label=inert_section_title)
 
 					if(to_draw_2D_sections):
-						subsection_Xs, subsection_Ys = subsection_2D.exterior.coords.xy
-						ax_section.plot(subsection_Xs, subsection_Ys, \
-					                    '.-', markersize=2, label='subsec ' + str(subsection_id) + \
-											(('; $S_{conv}$ = ' + my.f2s(main_sections_convex_areas[section_id]) + ' $nm^2$') \
-								             if subsection_id == main_subsections_ids[section_id] else ''))
+						fig_inert_section, ax_inert_section = my.get_fig("x''", "y''", title=inert_section_title)
+						ax_inert_section.plot(inert_sections_2D[section_id].vertices[:, 0], inert_sections_2D[section_id].vertices[:, 1])
+						#fig_inert_section.legend()
 
-				if(to_draw_2D_sections):
-					fig_section.legend()
+				if(to_draw_chain_sections):
+					ax_protein.plot(center_coords[section_id, 0], center_coords[section_id, 1], center_coords[section_id, 2], \
+						               '.', markersize=10, color=my.colors[section_id_i], label=None)
+
+					if(to_draw_2D_sections):
+						fig_section, ax_section = my.get_fig("x'", "y'", title=section_title)
+						ax_section.scatter(center_crds_2D[0, section_id], center_crds_2D[1, section_id], marker='+', \
+							               color='red', label='chain')
+
+					for subsection_id, subsection_2D in enumerate(sections_2D[section_id].polygons_closed):
+						subsection_3D = trimesh.load_path(subsection_2D).to_3D(sections_to_3D[section_id, :, :])
+						ax_protein.plot(subsection_3D.vertices[:, 0], subsection_3D.vertices[:, 1], subsection_3D.vertices[:, 2], \
+						               '+', markersize=4, label=(section_title if subsection_id == 0 else None), color=my.colors[section_id_i])
+
+						if(to_draw_2D_sections):
+							subsection_Xs, subsection_Ys = subsection_2D.exterior.coords.xy
+							ax_section.plot(subsection_Xs, subsection_Ys, \
+						                    '.-', markersize=2, label='subsec ' + str(subsection_id) + \
+												(('; $S_{conv}$ = ' + my.f2s(main_sections_convex_areas[section_id]) + ' $nm^2$') \
+									             if subsection_id == main_subsections_ids[section_id] else ''))
+
+					if(to_draw_2D_sections):
+						fig_section.legend()
 
 		fig_protein.legend()
 
