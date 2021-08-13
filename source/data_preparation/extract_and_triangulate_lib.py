@@ -333,17 +333,24 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 		liag_inert, rot_matr_to_principal = np.linalg.eigh(inertia_tensor[0, :, :])
 
 		inv_trans = np.linalg.inv(rot_matr_to_principal)
-		#rotated_atom_coords = np.dot(inv_trans, molecule.xyz[0, :, :].T).T
-		rotated_vertices = np.dot(inv_trans, regular_trimesh.vertices.T).T
+		rotated_center_coords = np.dot(center_coords, inv_trans.T)
+		rotated_vertices = np.dot(regular_trimesh.vertices, inv_trans.T)
 		rotated_trimesh = trimesh.Trimesh(vertices=rotated_vertices, faces=regular_trimesh.faces)
-		x_min = np.min(rotated_vertices[:, 0])
-		x_max = np.max(rotated_vertices[:, 0])
+		x_min = np.amin(rotated_vertices[:, 0])
+		x_max = np.amax(rotated_vertices[:, 0])
+		x_range = np.array([x_min, x_max])
+		x_beg_ind = np.argmin(np.abs(x_range - rotated_center_coords[0, 0]))
+		x_beg = x_range[x_beg_ind]                   # closest to beginning of the chain
+		x_end = x_range[np.arange(2) != x_beg_ind]   # closest to ending of the chain
 
 		for i_s in range(N_centers):
-			x_section = x_min + (x_max - x_min) * (i_s + 1) / (N_centers + 1)
+			x_section = x_beg + (x_end - x_beg) * (i_s + 1) / (N_centers + 1)
 			inert_sections_3D[i_s] = \
 				rotated_trimesh.section(plane_origin = [x_section, 0, 0], \
 										plane_normal = [1, 0, 0])
+			if(inert_sections_3D[i_s] is None):
+				print('ERROR: No section found at x_sect =', x_section, '; x_beg =', x_beg, ', x_end =', x_end)
+				input('next')
 			inert_sections_2D[i_s], inert_sections_to_3D[i_s, :, :] = \
 				inert_sections_3D[i_s].to_planar(check=False)
 
@@ -393,7 +400,7 @@ def get_lin_features(pdb_filepath, Ravg, to_comp_cor=False, chain_mode=0, N_cent
 					inert_section_title = 'inert section ' + str(section_id)
 					unrotated_inert_section = np.dot(rot_matr_to_principal, inert_sections_3D[section_id].vertices.T).T
 					ax_protein.plot(unrotated_inert_section[:, 0], unrotated_inert_section[:, 1], unrotated_inert_section[:, 2], \
-					               '+', markersize=4, label=inert_section_title)
+					               'o', markersize=4, label=inert_section_title)
 
 					if(to_draw_2D_sections):
 						fig_inert_section, ax_inert_section = my.get_fig("x''", "y''", title=inert_section_title)
