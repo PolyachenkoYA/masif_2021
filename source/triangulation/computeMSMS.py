@@ -11,9 +11,9 @@ import sys
 # Pablo Gainza LPDI EPFL 2017-2019
 # Calls MSMS and returns the vertices.
 # Special atoms are atoms with a reduced radius.
-def computeMSMS(pdb_file,  have_xyzrn=True):
+def computeMSMS(pdb_file, tmp_dir='', have_xyzrn=True):
     #randnum = random.randint(1,10000000)
-    file_base = masif_opts['tmp_dir']+"/msms_"+os.path.basename(pdb_file)
+    file_base = tmp_dir+"/msms_"+os.path.basename(pdb_file)
     out_xyzrn = file_base+".xyzrn"
     #print('msms file' + file_base)
 

@@ -178,11 +178,11 @@ def computeSatisfied_CO_HN(atoms):
 # Compute the charge of a new mesh, based on the charge of an old mesh.
 # Use the top vertex in distance, for now (later this should be smoothed over 3
 # or 4 vertices)
-def assignChargesToNewMesh(new_vertices, old_vertices, old_charges, seeder_opts):
+def assignChargesToNewMesh(new_vertices, old_vertices, old_charges, to_interpolate_features=True):
     dataset = old_vertices
     testset = new_vertices
     new_charges = np.zeros(len(new_vertices))
-    if seeder_opts["feature_interpolation"]:
+    if to_interpolate_features:
         num_inter = 4  # Number of interpolation features
         # Assign k old vertices to each new vertex.
         kdt = KDTree(dataset)
