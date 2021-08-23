@@ -5,7 +5,8 @@ import sys
 import os
 import shutil
 
-import data_preparation.extract_and_triangulate_lib as ext_and_trg
+#import data_preparation.extract_and_triangulate_lib as ext_and_trg
+import masif.extract_and_triangulate_lib as ext_and_trg
 
 import mylib as my
 
@@ -42,19 +43,20 @@ def main():
 		print('WARNING: you asked to plot correlations between features but said to not compute them; Rcor will not be plotted')
 
 	### =================== make the dirs ======================
-	pdb_filepath_base = os.path.join(my.git_root_path(), 'data', 'linear_avg', pdb_filebase)
-	pdb_filepath = os.path.join(pdb_filepath_base, pdb_filebase + '.pdb')
-	if(os.path.isdir(pdb_filepath_base)):
+	pdb_folder = os.path.join(my.git_root_path(), 'data', 'linear_avg', pdb_filebase)
+	pdb_filebase = os.path.join(pdb_folder, pdb_filebase)
+	pdb_filepath = pdb_filebase + '.pdb'
+	if(os.path.isdir(pdb_folder)):
 		if(to_recompute.any()):
-			shutil.rmtree(pdb_filepath_base)
+			shutil.rmtree(pdb_folder)
 		else:
 			print('PDB was already processed. Searching for "' + pdb_filepath + '"')
-	if(to_recompute.any() or (not os.path.isdir(pdb_filepath_base))):
-		os.makedirs(pdb_filepath_base)
-		shutil.copy(pdb_filepath_base + '.pdb', pdb_filepath)
+	if(to_recompute.any() or (not os.path.isdir(pdb_folder))):
+		os.makedirs(pdb_folder)
+		shutil.copy(pdb_folder + '.pdb', pdb_filepath)
 
 	### =================== compute & plot ======================
-	ext_and_trg.get_lin_features(pdb_filepath, Ravg, to_comp_cor=to_comp_corelations, \
+	ext_and_trg.get_all_features(pdb_filebase, Ravg, to_comp_cor=to_comp_corelations, \
 					 to_recompute=to_recompute, to_save_ply=to_save_ply, \
 					 to_draw_centers=to_draw_centers,  to_draw_atoms=to_draw_atoms, \
 					 to_draw_vertices=to_draw_vertices, to_plot_features=to_plot_features, \
